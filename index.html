@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order Generator v1.1.0</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- CodeMirror for JSON syntax highlighting with folding support -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/json/json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/indent-fold.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #121212;
+      --card-bg: #1e1e1e;
+      --input-bg: #2d2d2d;
+      --border: #333;
+      --text: #e0e0e0;
+      --red-text: #ff6b6b;
+      --blue-select: #339af0;
+      --success: #28a745;
+      --primary: #0d6efd;
+    }
+
+    body { 
+      background: var(--bg-dark); 
+      color: var(--text); 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .main-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      padding: 1.5rem;
+      margin: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (min-width: 769px) {
+      .main-card { max-width: 900px; margin: 2rem auto; }
+    }
+
+    .form-control, .form-select, textarea {
+      background: var(--input-bg);
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 8px;
+    }
+    .form-control:focus, .form-select:focus, textarea:focus {
+      background: #333;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+      color: #fff;
+    }
+
+    .btn-primary { background: var(--primary); border: none; }
+    .btn-success { background: var(--success); border: none; }
+    .btn-secondary { background: #6c757d; border: none; }
+    .btn-primary:hover { background: #0b5ed7; }
+    .btn-success:hover { background: #218838; }
+    .btn-secondary:hover { background: #5a6268; }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 1rem 0 0.5rem 0;
+      min-height: 2rem;
+    }
+    .status { 
+      font-weight: 600; 
+      padding: 0.25rem 0;
+      flex: 1;
+    }
+
+    .form-label { color: #bbbbbb; font-weight: 600; }
+    small { color: #999; }
+    h2 { color: var(--primary); }
+
+    /* HIDDEN UNTIL AUTH */
+    #mainUI { display: none; }
+
+    /* CodeMirror JSON Editor */
+    .CodeMirror {
+      background: var(--input-bg) !important;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: 400px;
+      font-size: 14px;
+    }
+    .CodeMirror-focused {
+      border-color: var(--primary) !important;
+    }
+
+    /* Console Output */
+    .console-output {
+      background: #000;
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8em;
+      padding: 0.75rem;
+      height: 400px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .console-output .error { color: #ff6b6b; }
+    .console-output .success { color: #51cf66; }
+    .console-output .info { color: #339af0; }
+
+    /* Accordion styling for order lines */
+    .accordion-item {
+      background: var(--input-bg) !important;
+      border-color: var(--border) !important;
+    }
+
+    .accordion-button {
+      background: var(--input-bg) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+
+    .accordion-button:not(.collapsed) {
+      background: #333 !important;
+      color: var(--primary) !important;
+      box-shadow: none;
+    }
+
+    .accordion-button:focus {
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .accordion-body {
+      background: var(--card-bg) !important;
+    }
+
+    /* Summary fields section */
+    .summary-section {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-card">
+    <h2 class="text-center mb-4">Order Generator v1.1.0</h2>
+
+    <!-- ORG -->
+    <div class="mb-3">
+      <label class="form-label">ORG:</label>
+      <div class="d-flex align-items-center gap-2">
+        <input type="text" id="org" class="form-control" placeholder="Enter ORG" maxlength="20" style="width: 250px; max-width: 100%;" />
+        <button id="authBtn" class="btn btn-success px-4">Authenticate</button>
+      </div>
+      <small>Press Enter to authenticate</small>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status-bar">
+      <div class="status" id="status">Enter ORG and press Enter to authenticate</div>
+    </div>
+
+    <!-- MAIN UI (Hidden until auth) -->
+    <div id="mainUI">
+      <!-- SAMPLE ORDER NUMBER INPUT -->
+      <div class="mb-3">
+        <label class="form-label">Sample Order Number:</label>
+        <input type="text" id="orderNumberInput" class="form-control" placeholder="Enter order number to copy" />
+        <small>Enter the order number of an existing order to load and copy</small>
+      </div>
+
+      <!-- LOAD ORDER BUTTON -->
+      <div class="mb-3 d-flex align-items-center gap-3">
+        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Order</button>
+        <span id="loadOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
+      </div>
+
+      <!-- SUMMARY FIELDS (Hidden until order loaded) -->
+      <div id="summarySection" class="mb-3" style="display: none;">
+        <label class="form-label mb-2">Order Summary (editable):</label>
+        <div class="summary-section">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Order Number(s)</label>
+              <input type="text" id="summaryOrderNumber" class="form-control" placeholder="Supports multiple (space/comma/semicolon) or ranges (ORDER001-ORDER007)" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Order Type</label>
+              <input type="text" id="summaryOrderType" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Destination Facility</label>
+              <input type="text" id="summaryDestinationFacility" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pickup Start Date/Time</label>
+              <div class="input-group">
+                <input type="datetime-local" id="summaryPickupStart" class="form-control" />
+                <button type="button" class="btn btn-outline-secondary" id="pickupStartCalendarBtn" title="Open calendar">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDER LINES ACCORDION (Hidden until order loaded) -->
+      <div id="orderLinesSection" class="mb-3" style="display: none;">
+        <label class="form-label mb-2">Order Lines (editable):</label>
+        <div id="orderLinesAccordion" class="accordion">
+          <!-- Order lines will be dynamically added here -->
+        </div>
+      </div>
+
+      <!-- CREATE ORDER BUTTON -->
+      <div id="createOrderButtonSection" class="mb-3" style="display: none;">
+        <div class="d-flex align-items-center gap-3">
+          <button id="createOrderBtn" class="btn btn-primary px-4" style="min-width: 200px;">Create Order(s)</button>
+          <span id="createOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
+        </div>
+      </div>
+
+      <!-- JSON EDITOR -->
+      <div class="mb-3">
+        <label class="form-label">Order JSON (editable):</label>
+        <textarea id="jsonTextarea" class="form-control" style="display: none;"></textarea>
+        <small>Load an order to populate this editor, then edit as needed before creating a new order</small>
+      </div>
+
+
+      <!-- CONSOLE OUTPUT -->
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0">API Console (Testing):</label>
+          <button type="button" id="clearConsoleBtn" class="btn btn-sm btn-secondary">Clear</button>
+        </div>
+        <div id="consoleOutput" class="console-output" style="height: 400px; overflow-y: auto;">Ready. Authenticate and load an order to begin.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const orgInput = document.getElementById('org');
+    const authBtn = document.getElementById('authBtn');
+    const mainUI = document.getElementById('mainUI');
+    const statusEl = document.getElementById('status');
+    const orderNumberInput = document.getElementById('orderNumberInput');
+    const jsonTextarea = document.getElementById('jsonTextarea');
+    const loadOrderBtn = document.getElementById('loadOrderBtn');
+    const createOrderBtn = document.getElementById('createOrderBtn');
+    const consoleOutput = document.getElementById('consoleOutput');
+    const clearConsoleBtn = document.getElementById('clearConsoleBtn');
+    const summarySection = document.getElementById('summarySection');
+    const orderLinesSection = document.getElementById('orderLinesSection');
+    const summaryOrderNumber = document.getElementById('summaryOrderNumber');
+    const summaryOrderType = document.getElementById('summaryOrderType');
+    const summaryDestinationFacility = document.getElementById('summaryDestinationFacility');
+    const summaryPickupStart = document.getElementById('summaryPickupStart');
+    const orderLinesAccordion = document.getElementById('orderLinesAccordion');
+    const createOrderButtonSection = document.getElementById('createOrderButtonSection');
+
+    let token = null;
+    let jsonEditor = null;
+    let currentOrderData = null; // Store the current order JSON object
+    let parsedOrderNumbers = []; // Store parsed order numbers for bulk import
+    let availableUOMs = []; // Store available UOMs
+
+    // Ensure ORG is always blank on load (security)
+    orgInput.value = '';
+
+    // Initialize CodeMirror editor
+    function initJsonEditor() {
+      if (jsonEditor) return;
+      jsonEditor = CodeMirror.fromTextArea(jsonTextarea, {
+        mode: { name: "javascript", json: true },
+        theme: "monokai",
+        lineNumbers: true,
+        indentUnit: 2,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lineWrapping: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+      });
+    }
+
+    // ===== LOCALSTORAGE PERSISTENCE =====
+    const STORAGE_KEY = 'order_generator_preferences';
+    
+    function savePreferences() {
+      const prefs = {
+        orderNumber: orderNumberInput.value
+      };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+      } catch (e) {
+        console.warn('Failed to save preferences:', e);
+      }
+    }
+    
+    function loadPreferences() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const prefs = JSON.parse(saved);
+          if (prefs.orderNumber !== undefined) {
+            orderNumberInput.value = prefs.orderNumber;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load preferences:', e);
+      }
+    }
+    
+    // Load preferences on page load
+    loadPreferences();
+
+    // Auto-save preferences
+    let orderNumberTimeout;
+    orderNumberInput.addEventListener('input', () => {
+      clearTimeout(orderNumberTimeout);
+      orderNumberTimeout = setTimeout(() => savePreferences(), 500);
+    });
+
+    // Enter key support for order number input
+    orderNumberInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadOrder();
+      }
+    });
+
+    // STATUS
+    function status(text, type = 'info') {
+      statusEl.textContent = text;
+      statusEl.className = `status text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
+    }
+
+    // CONSOLE OUTPUT
+    function logToConsole(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '[ERROR]' : type === 'success' ? '[SUCCESS]' : '[INFO]';
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+      consoleOutput.innerHTML += `<span class="${className}">[${timestamp}] ${prefix}</span> ${message}\n`;
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function clearConsole() {
+      consoleOutput.textContent = 'Console cleared.\n';
+    }
+
+    clearConsoleBtn.addEventListener('click', clearConsole);
+
+    // API
+    async function api(action, data = {}, showDetails = false) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      
+      // Only show detailed logging for non-auth calls if requested
+      if (showDetails && action !== 'auth') {
+        logToConsole(`API Call: ${action}`, 'info');
+        // Filter out token from request logging
+        const logData = { ...data };
+        if (logData.token) logData.token = '[REDACTED]';
+        logToConsole(`Request: ${JSON.stringify(logData, null, 2)}`, 'info');
+      }
+      
+      try {
+        const response = await fetch(`/api/${action}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        
+        // Only show detailed response for non-auth calls if requested
+        if (showDetails && action !== 'auth') {
+          // Filter out token from response logging
+          const logResult = { ...result };
+          if (logResult.token) logResult.token = '[REDACTED]';
+          logToConsole(`Response: ${JSON.stringify(logResult, null, 2)}`, result.success ? 'success' : 'error');
+        }
+        
+        return result;
+      } catch (e) {
+        if (showDetails && action !== 'auth') {
+          logToConsole(`Exception: ${e.message}`, 'error');
+        }
+        return { success: false, error: e.message };
+      }
+    }
+
+    // App opened
+    window.addEventListener('load', () => {
+      // Don't log app_opened to console
+      fetch('/api/app_opened', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
+      orgInput.focus();
+      initJsonEditor();
+      
+      // Date picker button functionality
+      const pickupStartCalendarBtn = document.getElementById('pickupStartCalendarBtn');
+      if (pickupStartCalendarBtn) {
+        pickupStartCalendarBtn.addEventListener('click', () => {
+          summaryPickupStart.showPicker ? summaryPickupStart.showPicker() : summaryPickupStart.focus();
+        });
+      }
+    });
+
+    // Auth
+    async function authenticate() {
+      const org = orgInput.value.trim();
+      if (!org) {
+        status('ORG required', 'error');
+        mainUI.style.display = 'none';
+        return;
+      }
+      status('Authenticating...');
+      const res = await api('auth', { org }, false);
+      if (!res.success) {
+        // Log detailed error to console
+        logToConsole('=== AUTH API ERROR ===', 'error');
+        logToConsole(`Error: ${res.error || 'Unknown error'}`, 'error');
+        if (res.error && res.error.length > 200) {
+          logToConsole(`Full Error Details:`, 'error');
+          logToConsole(res.error, 'error');
+        }
+        
+        // Show simple message to user
+        status('Authentication failed', 'error');
+        logToConsole('Authentication: Failed', 'error');
+        mainUI.style.display = 'none';
+        return;
+      }
+      token = res.token;
+      status('Authenticated – ready!', 'success');
+      logToConsole('Authentication: Succeeded', 'success');
+      mainUI.style.display = 'block';
+      orderNumberInput.focus();
+      
+      // Load UOMs after authentication
+      loadUOMs();
+    }
+    
+    // Load available UOMs
+    async function loadUOMs() {
+      const org = orgInput.value.trim();
+      if (!org || !token) return;
+      
+      try {
+        const res = await api('search_uoms', { org, token }, false);
+        if (res.success && res.data) {
+          availableUOMs = res.data;
+          logToConsole(`Loaded ${availableUOMs.length} UOMs`, 'success');
+        }
+      } catch (e) {
+        logToConsole(`Error loading UOMs: ${e.message}`, 'error');
+      }
+    }
+
+    orgInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') authenticate();
+    });
+    authBtn.onclick = authenticate;
+
+    // ===== ORDER NUMBER PARSING =====
+    
+    // Parse order numbers from input (supports multiple, ranges)
+    function parseOrderNumbers(input) {
+      const orderNumbers = [];
+      const errors = [];
+      
+      // Split by space, comma, or semicolon
+      const parts = input.split(/[\s,;]+/).filter(p => p.trim());
+      
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (!trimmed) continue;
+        
+        // Check if it's a range (contains dash)
+        if (trimmed.includes('-')) {
+          const [start, end] = trimmed.split('-').map(s => s.trim());
+          
+          if (!start || !end) {
+            errors.push(`Invalid range format: ${trimmed}`);
+            continue;
+          }
+          
+          // Extract base and numbers
+          const startMatch = start.match(/^(.+?)(\d+)$/);
+          const endMatch = end.match(/^(.+?)(\d+)$/);
+          
+          if (!startMatch || !endMatch) {
+            errors.push(`Invalid range format: ${trimmed}`);
+            continue;
+          }
+          
+          const startBase = startMatch[1];
+          const startNum = parseInt(startMatch[2]);
+          const endBase = endMatch[1];
+          const endNum = parseInt(endMatch[2]);
+          
+          // Validate base matches
+          if (startBase !== endBase) {
+            errors.push(`Range bases don't match: ${trimmed}`);
+            continue;
+          }
+          
+          // Validate numbers
+          if (isNaN(startNum) || isNaN(endNum)) {
+            errors.push(`Invalid numbers in range: ${trimmed}`);
+            continue;
+          }
+          
+          // Validate range direction
+          if (endNum < startNum) {
+            errors.push(`Invalid range: ${trimmed} (end must be >= start)`);
+            continue;
+          }
+          
+          // Validate padding consistency
+          const startPadding = startMatch[2].length;
+          const endPadding = endMatch[2].length;
+          if (startPadding !== endPadding) {
+            errors.push(`Invalid range: ${trimmed} (number padding must match)`);
+            continue;
+          }
+          
+          // Generate range
+          for (let i = startNum; i <= endNum; i++) {
+            const numStr = String(i).padStart(startPadding, '0');
+            orderNumbers.push(startBase + numStr);
+          }
+        } else {
+          // Single order number
+          orderNumbers.push(trimmed);
+        }
+      }
+      
+      return { orderNumbers, errors };
+    }
+    
+    // ===== VALIDATION FUNCTIONS =====
+    
+    // Validate order data before sending
+    function validateOrderData(orderData) {
+      const errors = [];
+      
+      // Validate summary fields
+      if (!orderData.OrderId && !orderData.orderId) {
+        errors.push('Order Number is required');
+      }
+      
+      if (!orderData.OrderType && !orderData.orderType) {
+        errors.push('Order Type is required');
+      }
+      
+      if (!orderData.DestinationFacilityId && !orderData.destinationFacilityId) {
+        errors.push('Destination Facility is required');
+      }
+      
+      if (!orderData.PickupStartDateTime && !orderData.pickupStartDateTime) {
+        errors.push('Pickup Start Date/Time is required');
+      }
+      
+      // Validate order lines
+      const orderLines = orderData.OrderLine || orderData.orderLine || [];
+      if (orderLines.length === 0) {
+        errors.push('At least one order line is required');
+      }
+      
+      orderLines.forEach((line, index) => {
+        const itemId = line.ItemId || line.itemId || '';
+        const quantity = line.OrderedQuantity || line.orderedQuantity || 0;
+        
+        if (!itemId.trim()) {
+          errors.push(`Order Line ${index + 1}: Item ID is required`);
+        }
+        
+        if (!quantity || quantity <= 0) {
+          errors.push(`Order Line ${index + 1}: Quantity must be greater than 0`);
+        }
+      });
+      
+      return errors;
+    }
+    
+    // Validate items using API
+    async function validateItems(itemIds) {
+      if (!itemIds || itemIds.length === 0) return { valid: true, invalidItems: [] };
+      
+      const org = orgInput.value.trim();
+      if (!org || !token) return { valid: true, invalidItems: [] };
+      
+      try {
+        const query = `ItemId IN ([${itemIds.map(id => `'${id}'`).join(',')}])`;
+        
+        // Log detailed API call information
+        const facilityId = `${org.toUpperCase()}-DM1`;
+        const apiUrl = `https://salep.sce.manh.com/item-master/api/item-master/item/search`;
+        const payload = { Query: query };
+        
+        logToConsole('=== VALIDATE ITEMS API CALL ===', 'info');
+        logToConsole(`Method: POST`, 'info');
+        logToConsole(`URL: ${apiUrl}`, 'info');
+        logToConsole(`Headers:`, 'info');
+        logToConsole(`  Authorization: Bearer [REDACTED]`, 'info');
+        logToConsole(`  Content-Type: application/json`, 'info');
+        logToConsole(`  FacilityId: ${facilityId}`, 'info');
+        logToConsole(`  selectedOrganization: ${org.toUpperCase()}`, 'info');
+        logToConsole(`  selectedLocation: ${facilityId}`, 'info');
+        logToConsole(`Items to validate: ${itemIds.join(', ')}`, 'info');
+        logToConsole(`Raw JSON Payload (sent to backend):`, 'info');
+        logToConsole(JSON.stringify({ org, token: '[REDACTED]', query }, null, 2), 'info');
+        logToConsole(`Raw JSON Payload (sent to Manhattan API):`, 'info');
+        logToConsole(JSON.stringify(payload, null, 2), 'info');
+        
+        const res = await api('validate_items', { org, token, query: query }, false);
+        
+        // Log response details
+        logToConsole('=== VALIDATE ITEMS API RESPONSE ===', 'info');
+        if (res.success) {
+          logToConsole(`Status: Success`, 'success');
+          const responseData = res.data || res.Data || [];
+          logToConsole(`Items found: ${responseData.length}`, 'info');
+          if (responseData.length > 0) {
+            logToConsole(`Valid Item IDs:`, 'info');
+            responseData.forEach((item, idx) => {
+              const id = item.ItemId || item.itemId || 'N/A';
+              const desc = item.Description || item.description || 'N/A';
+              logToConsole(`  ${idx + 1}. ItemId: ${id}, Description: ${desc}`, 'info');
+            });
+          }
+        } else {
+          logToConsole(`Status: Failed`, 'error');
+          logToConsole(`Error: ${res.error || 'Unknown error'}`, 'error');
+        }
+        
+        if (!res.success) {
+          return { valid: false, invalidItems: itemIds, error: res.error };
+        }
+        
+        // Extract valid item IDs from response
+        const validItemIds = new Set();
+        const responseData = res.data || res.Data || [];
+        
+        if (Array.isArray(responseData)) {
+          responseData.forEach(item => {
+            const id = item.ItemId || item.itemId;
+            if (id) validItemIds.add(id);
+          });
+        }
+        
+        const invalidItems = itemIds.filter(id => !validItemIds.has(id));
+        
+        if (invalidItems.length > 0) {
+          logToConsole(`Invalid Item IDs (not found in response): ${invalidItems.join(', ')}`, 'error');
+        } else {
+          logToConsole(`All items validated successfully!`, 'success');
+        }
+        
+        return { valid: invalidItems.length === 0, invalidItems };
+      } catch (e) {
+        logToConsole(`=== VALIDATE ITEMS API EXCEPTION ===`, 'error');
+        logToConsole(`Exception: ${e.message}`, 'error');
+        logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+        return { valid: false, invalidItems: itemIds, error: e.message };
+      }
+    }
+    
+    // Load Order
+    async function loadOrder() {
+      if (!token) {
+        status('Authenticate first', 'error');
+        logToConsole('Authentication required. Please authenticate first.', 'error');
+        return;
+      }
+      
+      const orderNumber = orderNumberInput.value.trim();
+      if (!orderNumber) {
+        loadOrderStatus.textContent = 'Order number required';
+        loadOrderStatus.className = 'text-danger';
+        logToConsole('Order number is required', 'error');
+        return;
+      }
+
+      const org = orgInput.value.trim();
+      if (!org) {
+        status('ORG required', 'error');
+        return;
+      }
+
+      loadOrderStatus.textContent = 'Loading...';
+      loadOrderStatus.className = 'text-info';
+      createOrderStatus.textContent = ''; // Clear create order status
+      loadOrderBtn.disabled = true;
+
+      // Log API call details to console
+      const facilityId = `${org.toUpperCase()}-DM1`;
+      const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order/orderId/${orderNumber}`;
+      logToConsole('=== LOAD ORDER API CALL ===', 'info');
+      logToConsole(`Method: GET`, 'info');
+      logToConsole(`URL: ${apiUrl}`, 'info');
+      logToConsole(`Path Parameter:`, 'info');
+      logToConsole(`  orderId: ${orderNumber}`, 'info');
+      logToConsole(`Headers:`, 'info');
+      logToConsole(`  Authorization: Bearer [REDACTED]`, 'info');
+      logToConsole(`  Content-Type: application/json`, 'info');
+      logToConsole(`  FacilityId: ${facilityId}`, 'info');
+      logToConsole(`  selectedOrganization: ${org.toUpperCase()}`, 'info');
+      logToConsole(`  selectedLocation: ${facilityId}`, 'info');
+
+      try {
+        const res = await api('find_order', { org, token, orderNumber }, false);
+        
+        // Log response details to console
+        logToConsole('=== LOAD ORDER API RESPONSE ===', 'info');
+        if (res.success && res.orderData) {
+          logToConsole(`Status: Success`, 'success');
+          logToConsole(`Order loaded: ${res.orderData.OrderId || res.orderData.orderId || orderNumber}`, 'success');
+          logToConsole(`Response JSON:`, 'info');
+          logToConsole(JSON.stringify(res.orderData, null, 2), 'info');
+        } else {
+          logToConsole(`Status: Failed`, 'error');
+          logToConsole(`Error: ${res.error || 'No order data returned'}`, 'error');
+          if (res.error) {
+            logToConsole(`Full Error Response:`, 'error');
+            logToConsole(res.error, 'error');
+          }
+        }
+        
+        if (!res.success) {
+          // Log detailed error to console
+          logToConsole('=== LOAD ORDER API ERROR ===', 'error');
+          logToConsole(`Error: ${res.error || 'Unknown error'}`, 'error');
+          if (res.error && res.error.length > 200) {
+            // Log full error details to console
+            logToConsole(`Full Error Details:`, 'error');
+            logToConsole(res.error, 'error');
+          }
+          
+          // Show simple message next to button
+          loadOrderStatus.textContent = 'Invalid Order';
+          loadOrderStatus.className = 'text-danger';
+          if (jsonEditor) {
+            jsonEditor.setValue('');
+          }
+          currentOrderData = null;
+          summarySection.style.display = 'none';
+          orderLinesSection.style.display = 'none';
+          createOrderButtonSection.style.display = 'none';
+          return;
+        }
+
+        if (!res.orderData) {
+          // Log detailed error to console
+          logToConsole('=== LOAD ORDER API ERROR ===', 'error');
+          logToConsole('No order data returned from API', 'error');
+          
+          // Show simple message next to button
+          loadOrderStatus.textContent = 'Invalid Order';
+          loadOrderStatus.className = 'text-danger';
+          if (jsonEditor) {
+            jsonEditor.setValue('');
+          }
+          currentOrderData = null;
+          summarySection.style.display = 'none';
+          orderLinesSection.style.display = 'none';
+          createOrderButtonSection.style.display = 'none';
+          return;
+        }
+
+        // Store order data
+        currentOrderData = JSON.parse(JSON.stringify(res.orderData)); // Deep copy
+        
+        // Display order JSON in editor
+        const jsonStr = JSON.stringify(res.orderData, null, 2);
+        if (jsonEditor) {
+          jsonEditor.setValue(jsonStr);
+        }
+        
+        // Populate summary fields and order lines
+        populateSummaryFields(res.orderData);
+        populateOrderLines(res.orderData);
+        
+        // Show summary, order lines, and create order button sections
+        summarySection.style.display = 'block';
+        orderLinesSection.style.display = 'block';
+        createOrderButtonSection.style.display = 'block';
+        
+        // Show success message next to button
+        loadOrderStatus.textContent = 'Order loaded successfully!';
+        loadOrderStatus.className = 'text-success';
+      } catch (e) {
+        loadOrderStatus.textContent = `Error: ${e.message}`;
+        loadOrderStatus.className = 'text-danger';
+        logToConsole(`Exception: ${e.message}`, 'error');
+        logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+      } finally {
+        loadOrderBtn.disabled = false;
+      }
+    }
+
+    loadOrderBtn.onclick = loadOrder;
+
+    // Create Order
+    async function createOrder() {
+      if (!token) {
+        status('Authenticate first', 'error');
+        logToConsole('Authentication required. Please authenticate first.', 'error');
+        return;
+      }
+
+      let orderJson;
+      try {
+        // Use currentOrderData if available, otherwise parse from editor
+        if (currentOrderData) {
+          orderJson = JSON.parse(JSON.stringify(currentOrderData)); // Deep copy
+        } else {
+          const jsonStr = jsonEditor ? jsonEditor.getValue() : jsonTextarea.value.trim();
+          if (!jsonStr) {
+            createOrderStatus.textContent = 'No order data. Load an order first.';
+            createOrderStatus.className = 'text-danger';
+            logToConsole('No order JSON to create. Load an order first.', 'error');
+            return;
+          }
+          orderJson = JSON.parse(jsonStr);
+        }
+      } catch (e) {
+        createOrderStatus.textContent = 'Invalid JSON format';
+        createOrderStatus.className = 'text-danger';
+        logToConsole(`Invalid JSON: ${e.message}`, 'error');
+        return;
+      }
+
+      const org = orgInput.value.trim();
+      if (!org) {
+        status('ORG required', 'error');
+        return;
+      }
+
+      // Convert datetime-local to ISO format if needed
+      if (orderJson.PickupStartDateTime && orderJson.PickupStartDateTime.length === 16) {
+        // datetime-local format, add seconds
+        orderJson.PickupStartDateTime = orderJson.PickupStartDateTime + ':00';
+      }
+      if (orderJson.pickupStartDateTime && orderJson.pickupStartDateTime.length === 16) {
+        orderJson.pickupStartDateTime = orderJson.pickupStartDateTime + ':00';
+      }
+
+      // Validate order data
+      const validationErrors = validateOrderData(orderJson);
+      if (validationErrors.length > 0) {
+        createOrderStatus.textContent = `Validation failed: ${validationErrors.join('; ')}`;
+        createOrderStatus.className = 'text-danger';
+        validationErrors.forEach(err => logToConsole(err, 'error'));
+        return;
+      }
+
+      // Collect item IDs for validation
+      const orderLines = orderJson.OrderLine || orderJson.orderLine || [];
+      const itemIds = orderLines
+        .map(line => line.ItemId || line.itemId)
+        .filter(id => id && id.trim());
+
+      // Validate items
+      if (itemIds.length > 0) {
+        createOrderStatus.textContent = 'Validating items...';
+        createOrderStatus.className = 'text-info';
+        const itemValidation = await validateItems(itemIds);
+        
+        if (!itemValidation.valid) {
+          if (itemValidation.invalidItems && itemValidation.invalidItems.length > 0) {
+            createOrderStatus.textContent = `Invalid items: ${itemValidation.invalidItems.join(', ')}`;
+            createOrderStatus.className = 'text-danger';
+            logToConsole(`Invalid items found: ${itemValidation.invalidItems.join(', ')}`, 'error');
+          } else {
+            createOrderStatus.textContent = `Item validation failed: ${itemValidation.error || 'Unknown error'}`;
+            createOrderStatus.className = 'text-danger';
+            logToConsole(`Item validation error: ${itemValidation.error || 'Unknown error'}`, 'error');
+          }
+          return;
+        }
+        logToConsole(`All items validated successfully: ${itemIds.join(', ')}`, 'success');
+      }
+
+      createOrderStatus.textContent = 'Creating order...';
+      createOrderStatus.className = 'text-info';
+      loadOrderStatus.textContent = ''; // Clear load order status
+      createOrderBtn.disabled = true;
+
+      // Parse order numbers from summary field for bulk import
+      const orderInput = summaryOrderNumber.value.trim();
+      const { orderNumbers, errors: parseErrors } = parseOrderNumbers(orderInput);
+      
+      if (parseErrors.length > 0) {
+        createOrderStatus.textContent = `Parse errors: ${parseErrors.join('; ')}`;
+        createOrderStatus.className = 'text-danger';
+        parseErrors.forEach(err => logToConsole(err, 'error'));
+        createOrderBtn.disabled = false;
+        return;
+      }
+      
+      // Clear parse errors if valid
+      if (orderInput && orderNumbers.length > 0) {
+        createOrderStatus.textContent = '';
+      }
+      
+      // Store parsed order numbers
+      parsedOrderNumbers = orderNumbers.length > 0 ? orderNumbers : [orderJson.OrderId || orderJson.orderId || ''];
+      
+      // Validate that orders don't already exist
+      createOrderStatus.textContent = 'Validating orders...';
+      createOrderStatus.className = 'text-info';
+      
+      const existingOrders = [];
+      for (const orderNum of parsedOrderNumbers) {
+        logToConsole(`Checking if order exists: ${orderNum}`, 'info');
+        const checkRes = await api('find_order', { org, token, orderNumber: orderNum }, false);
+        if (checkRes.success && checkRes.orderData) {
+          existingOrders.push(orderNum);
+          logToConsole(`Order ${orderNum} already exists`, 'error');
+        }
+      }
+      
+      if (existingOrders.length > 0) {
+        const errorMsg = `Orders already exist: ${existingOrders.join(', ')}`;
+        createOrderStatus.textContent = errorMsg;
+        createOrderStatus.className = 'text-danger';
+        logToConsole(`Validation failed: ${errorMsg}`, 'error');
+        createOrderBtn.disabled = false;
+        return;
+      }
+      
+      logToConsole(`All orders validated - none exist in system`, 'success');
+      
+      // Check if we should use bulk import (multiple orders)
+      const useBulk = parsedOrderNumbers.length > 1;
+      
+      if (useBulk) {
+        // Generate multiple orders from template
+        const ordersData = parsedOrderNumbers.map((orderNum, index) => {
+          const orderCopy = JSON.parse(JSON.stringify(orderJson));
+          orderCopy.OrderId = orderNum;
+          orderCopy.orderId = orderNum;
+          return orderCopy;
+        });
+
+        // Log bulk import API call
+        const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order/bulkImport`;
+        logToConsole('=== BULK IMPORT ORDERS API CALL ===', 'info');
+        logToConsole(`Method: POST`, 'info');
+        logToConsole(`URL: ${apiUrl}`, 'info');
+        logToConsole(`Headers:`, 'info');
+        logToConsole(`  Authorization: Bearer [REDACTED]`, 'info');
+        logToConsole(`  Content-Type: application/json`, 'info');
+        logToConsole(`  FacilityId: ${org.toUpperCase()}-DM1`, 'info');
+        logToConsole(`  selectedOrganization: ${org.toUpperCase()}`, 'info');
+        logToConsole(`  selectedLocation: ${org.toUpperCase()}-DM1`, 'info');
+        logToConsole(`Payload (${ordersData.length} orders):`, 'info');
+        logToConsole(JSON.stringify({ Data: ordersData }, null, 2), 'info');
+
+        try {
+          const res = await api('bulk_import_orders', { org, token, ordersData }, true);
+          
+          // Log response details to console
+          logToConsole('=== BULK IMPORT ORDERS API RESPONSE ===', 'info');
+          if (res.success) {
+            logToConsole(`Status: Success`, 'success');
+            logToConsole(`Response:`, 'info');
+            logToConsole(JSON.stringify(res.response || res, null, 2), 'info');
+          } else {
+            logToConsole(`Status: Failed`, 'error');
+            logToConsole(`Error: ${res.error || 'Unknown error'}`, 'error');
+            if (res.error) {
+              logToConsole(`Full Error Response:`, 'error');
+              logToConsole(res.error, 'error');
+            }
+          }
+          
+          if (!res.success) {
+            // Show simple message next to button
+            createOrderStatus.textContent = 'Bulk import failed';
+            createOrderStatus.className = 'text-danger';
+            return;
+          }
+
+          // Show success message next to button
+          createOrderStatus.textContent = `Successfully imported ${ordersData.length} orders!`;
+          createOrderStatus.className = 'text-success';
+          logToConsole(`Bulk import successful: ${ordersData.length} orders`, 'success');
+        } catch (e) {
+          createOrderStatus.textContent = `Error: ${e.message}`;
+          createOrderStatus.className = 'text-danger';
+          logToConsole(`Exception: ${e.message}`, 'error');
+          logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+        } finally {
+          createOrderBtn.disabled = false;
+        }
+      } else {
+        // Single order
+        const facilityId = `${org.toUpperCase()}-DM1`;
+        const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order`;
+        logToConsole('=== CREATE ORDER API CALL ===', 'info');
+        logToConsole(`Method: POST`, 'info');
+        logToConsole(`URL: ${apiUrl}`, 'info');
+        logToConsole(`Headers:`, 'info');
+        logToConsole(`  Authorization: Bearer [REDACTED]`, 'info');
+        logToConsole(`  Content-Type: application/json`, 'info');
+        logToConsole(`  FacilityId: ${facilityId}`, 'info');
+        logToConsole(`  selectedOrganization: ${org.toUpperCase()}`, 'info');
+        logToConsole(`  selectedLocation: ${facilityId}`, 'info');
+        logToConsole(`Payload:`, 'info');
+        logToConsole(JSON.stringify(orderJson, null, 2), 'info');
+
+        try {
+          const res = await api('create_order', { org, token, orderData: orderJson }, true);
+          
+          // Log response details to console
+          logToConsole('=== CREATE ORDER API RESPONSE ===', 'info');
+          if (res.success) {
+            logToConsole(`Status: Success`, 'success');
+            if (res.orderId) {
+              logToConsole(`New Order ID: ${res.orderId}`, 'success');
+            }
+            logToConsole(`Response:`, 'info');
+            logToConsole(JSON.stringify(res.response || res, null, 2), 'info');
+          } else {
+            logToConsole(`Status: Failed`, 'error');
+            logToConsole(`Error: ${res.error || 'Unknown error'}`, 'error');
+            if (res.error) {
+              logToConsole(`Full Error Response:`, 'error');
+              logToConsole(res.error, 'error');
+            }
+          }
+          
+          if (!res.success) {
+            // Show simple message next to button
+            createOrderStatus.textContent = 'Create failed';
+            createOrderStatus.className = 'text-danger';
+            return;
+          }
+
+          // Show success message next to button
+          createOrderStatus.textContent = 'Order created successfully!';
+          createOrderStatus.className = 'text-success';
+          if (res.orderId) {
+            logToConsole(`New Order ID: ${res.orderId}`, 'success');
+          }
+        } catch (e) {
+          createOrderStatus.textContent = `Error: ${e.message}`;
+          createOrderStatus.className = 'text-danger';
+          logToConsole(`Exception: ${e.message}`, 'error');
+          logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+        } finally {
+          createOrderBtn.disabled = false;
+        }
+      }
+    }
+
+    createOrderBtn.onclick = createOrder;
+
+    // ===== SUMMARY FIELDS AND ORDER LINES FUNCTIONS =====
+    
+    // Populate summary fields from order data
+    function populateSummaryFields(orderData) {
+      // Order Number
+      summaryOrderNumber.value = orderData.OrderId || orderData.orderId || '';
+      
+      // Order Type (could be OrderType.OrderTypeId or OrderType string)
+      const orderType = orderData.OrderType;
+      if (orderType) {
+        summaryOrderType.value = typeof orderType === 'string' ? orderType : (orderType.OrderTypeId || orderType.orderTypeId || '');
+      } else {
+        summaryOrderType.value = '';
+      }
+      
+      // Destination Facility
+      summaryDestinationFacility.value = orderData.DestinationFacilityId || orderData.destinationFacilityId || '';
+      
+      // Pickup Start Date/Time - convert to datetime-local format
+      const pickupStart = orderData.PickupStartDateTime || orderData.pickupStartDateTime || 
+                         orderData.PickupStartDate || orderData.pickupStartDate || '';
+      if (pickupStart) {
+        // Convert ISO format to datetime-local format (YYYY-MM-DDTHH:mm)
+        const date = new Date(pickupStart);
+        if (!isNaN(date.getTime())) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          summaryPickupStart.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        } else {
+          summaryPickupStart.value = pickupStart;
+        }
+      } else {
+        summaryPickupStart.value = '';
+      }
+    }
+    
+    // Populate order lines accordion
+    function populateOrderLines(orderData) {
+      const orderLines = orderData.OrderLine || orderData.orderLine || [];
+      orderLinesAccordion.innerHTML = '';
+      
+      if (orderLines.length === 0) {
+        orderLinesAccordion.innerHTML = '<div class="text-muted p-3">No order lines found</div>';
+        return;
+      }
+      
+      orderLines.forEach((line, index) => {
+        const lineId = `line${index}`;
+        const itemId = line.ItemId || line.itemId || '';
+        const quantity = line.OrderedQuantity || line.orderedQuantity || line.Quantity || line.quantity || '';
+        const uom = line.QuantityUomId || line.quantityUomId || line.UOM || line.uom || '';
+        
+        const accordionItem = document.createElement('div');
+        accordionItem.className = 'accordion-item';
+        accordionItem.innerHTML = `
+          <h2 class="accordion-header">
+            <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#${lineId}">
+              Order Line ${index + 1} - ${itemId || 'No Item'} (Qty: ${quantity}, UOM: ${uom})
+            </button>
+          </h2>
+          <div id="${lineId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#orderLinesAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Item ID</label>
+                  <input type="text" class="form-control order-line-item" data-line-index="${index}" data-field="ItemId" value="${itemId}" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Quantity</label>
+                  <input type="number" class="form-control order-line-qty" data-line-index="${index}" data-field="OrderedQuantity" value="${quantity}" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">UOM</label>
+                  <select class="form-select order-line-uom" data-line-index="${index}" data-field="QuantityUomId">
+                    <option value="">Select UOM...</option>
+                    ${availableUOMs.map(uomOption => {
+                      const uomId = uomOption.UnitOfMeasureId || uomOption.unitOfMeasureId || '';
+                      const description = uomOption.Description || uomOption.description || uomId;
+                      const selected = uomId === uom ? 'selected' : '';
+                      return `<option value="${uomId}" ${selected}>${description}</option>`;
+                    }).join('')}
+                  </select>
+                </div>
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-success add-line-after-btn" data-line-index="${index}">+ Add Line</button>
+                <button type="button" class="btn btn-sm btn-danger remove-line-btn" data-line-index="${index}" ${orderLines.length === 1 ? 'style="display: none;"' : ''}>- Remove Line</button>
+              </div>
+            </div>
+          </div>
+        `;
+        orderLinesAccordion.appendChild(accordionItem);
+      });
+      
+      // Add event listeners for order line changes
+      attachOrderLineListeners();
+    }
+    
+    // Attach event listeners to order line inputs
+    function attachOrderLineListeners() {
+      // Remove old listeners by cloning
+      const inputs = orderLinesAccordion.querySelectorAll('.order-line-item, .order-line-qty');
+      inputs.forEach(input => {
+        input.addEventListener('input', syncOrderLineToJSON);
+      });
+      
+      // UOM dropdowns
+      const uomSelects = orderLinesAccordion.querySelectorAll('.order-line-uom');
+      uomSelects.forEach(select => {
+        select.addEventListener('change', syncOrderLineToJSON);
+      });
+      
+      // Remove line buttons
+      const removeBtns = orderLinesAccordion.querySelectorAll('.remove-line-btn');
+      removeBtns.forEach(btn => {
+        btn.addEventListener('click', removeOrderLine);
+      });
+      
+      // Add line after buttons
+      const addAfterBtns = orderLinesAccordion.querySelectorAll('.add-line-after-btn');
+      addAfterBtns.forEach(btn => {
+        btn.addEventListener('click', addOrderLineAfter);
+      });
+    }
+    
+    // Sync order line changes to JSON
+    function syncOrderLineToJSON(e) {
+      if (!currentOrderData) return;
+      
+      const lineIndex = parseInt(e.target.dataset.lineIndex);
+      const field = e.target.dataset.field;
+      const value = e.target.value;
+      
+      const orderLines = currentOrderData.OrderLine || currentOrderData.orderLine || [];
+      if (orderLines[lineIndex]) {
+        // Update the field (handle both camelCase and PascalCase)
+        orderLines[lineIndex][field] = value;
+        if (field === 'ItemId') {
+          orderLines[lineIndex].itemId = value;
+        } else if (field === 'OrderedQuantity') {
+          orderLines[lineIndex].OrderedQuantity = parseFloat(value) || 0;
+          orderLines[lineIndex].orderedQuantity = parseFloat(value) || 0;
+          // Also update Quantity for backwards compatibility
+          orderLines[lineIndex].Quantity = parseFloat(value) || 0;
+          orderLines[lineIndex].quantity = parseFloat(value) || 0;
+        } else if (field === 'QuantityUomId') {
+          orderLines[lineIndex].quantityUomId = value;
+          orderLines[lineIndex].UOM = value;
+          orderLines[lineIndex].uom = value;
+        }
+        
+        // Update JSON editor
+        updateJSONFromCurrentData();
+        
+        // Update accordion header
+        updateAccordionHeader(lineIndex);
+      }
+    }
+    
+    // Update accordion header text
+    function updateAccordionHeader(lineIndex) {
+      const accordionItem = orderLinesAccordion.children[lineIndex];
+      if (!accordionItem) return;
+      
+      const button = accordionItem.querySelector('.accordion-button');
+      const itemInput = accordionItem.querySelector('.order-line-item');
+      const qtyInput = accordionItem.querySelector('.order-line-qty');
+      const uomSelect = accordionItem.querySelector('.order-line-uom');
+      
+      if (button && itemInput && qtyInput && uomSelect) {
+        const itemId = itemInput.value || 'No Item';
+        const qty = qtyInput.value || '0';
+        const uomId = uomSelect.value || '';
+        // Get UOM description for display
+        const uomOption = availableUOMs.find(u => (u.UnitOfMeasureId || u.unitOfMeasureId) === uomId);
+        const uomDisplay = uomOption ? (uomOption.Description || uomOption.description || uomId) : uomId;
+        button.textContent = `Order Line ${lineIndex + 1} - ${itemId} (Qty: ${qty}, UOM: ${uomDisplay})`;
+      }
+    }
+    
+    // Remove order line
+    function removeOrderLine(e) {
+      if (!currentOrderData) return;
+      
+      const lineIndex = parseInt(e.target.dataset.lineIndex);
+      const orderLines = currentOrderData.OrderLine || currentOrderData.orderLine || [];
+      
+      // Don't allow removing if only one line remains
+      if (orderLines.length <= 1) {
+        createOrderStatus.textContent = 'Cannot remove the only order line';
+        createOrderStatus.className = 'text-danger';
+        return;
+      }
+      
+      if (orderLines.length > 0 && confirm(`Remove Order Line ${lineIndex + 1}?`)) {
+        orderLines.splice(lineIndex, 1);
+        
+        // Rebuild accordion
+        populateOrderLines(currentOrderData);
+        
+        // Update JSON editor
+        updateJSONFromCurrentData();
+      }
+    }
+    
+    // Add order line after a specific index
+    function addOrderLineAfter(e) {
+      if (!currentOrderData) {
+        createOrderStatus.textContent = 'Load an order first';
+        createOrderStatus.className = 'text-danger';
+        return;
+      }
+      
+      const lineIndex = parseInt(e.target.dataset.lineIndex);
+      addNewOrderLine(lineIndex);
+    }
+    
+    // Helper function to add a new order line
+    function addNewOrderLine(afterIndex) {
+      const orderLines = currentOrderData.OrderLine || currentOrderData.orderLine || [];
+      const newLine = {
+        OrderLineId: (orderLines.length + 1).toString(),
+        ItemId: '',
+        OrderedQuantity: 1,
+        QuantityUomId: 'units'
+      };
+      
+      // Ensure "units" exists in available UOMs, add if not
+      if (availableUOMs.length > 0 && !availableUOMs.find(u => (u.UnitOfMeasureId || u.unitOfMeasureId) === 'units')) {
+        availableUOMs.push({ UnitOfMeasureId: 'units', Description: 'Units' });
+      }
+      
+      if (afterIndex !== null && afterIndex !== undefined) {
+        // Insert after the specified index
+        orderLines.splice(afterIndex + 1, 0, newLine);
+      } else {
+        // Add to end
+        orderLines.push(newLine);
+      }
+      
+      // Rebuild accordion
+      populateOrderLines(currentOrderData);
+      
+      // Update JSON editor
+      updateJSONFromCurrentData();
+      
+      // Expand the new line and focus on Item ID
+      const newIndex = afterIndex !== null ? afterIndex + 1 : orderLines.length - 1;
+      const newLineId = `line${newIndex}`;
+      const collapse = document.getElementById(newLineId);
+      if (collapse) {
+        const bsCollapse = new bootstrap.Collapse(collapse, { show: true });
+        // Focus on Item ID input after a short delay to allow accordion to expand
+        setTimeout(() => {
+          const itemInput = collapse.querySelector('.order-line-item');
+          if (itemInput) {
+            itemInput.focus();
+          }
+        }, 300);
+      }
+    }
+    
+    // Sync summary field changes to JSON
+    summaryOrderNumber.addEventListener('input', () => {
+      if (currentOrderData) {
+        const orderInput = summaryOrderNumber.value.trim();
+        
+        // Parse order numbers for bulk import
+        const { orderNumbers, errors: parseErrors } = parseOrderNumbers(orderInput);
+        
+        if (parseErrors.length > 0) {
+          // Show parse errors next to Create Order button
+          createOrderStatus.textContent = `Parse errors: ${parseErrors.join('; ')}`;
+          createOrderStatus.className = 'text-danger';
+          parseErrors.forEach(err => logToConsole(err, 'error'));
+          return;
+        }
+        
+        // Clear parse errors if valid
+        if (orderInput && orderNumbers.length > 0) {
+          createOrderStatus.textContent = '';
+        }
+        
+        // Store parsed order numbers for bulk import
+        parsedOrderNumbers = orderNumbers;
+        
+        // Update current order data with first order number (for display)
+        if (orderNumbers.length > 0) {
+          currentOrderData.OrderId = orderNumbers[0];
+          currentOrderData.orderId = orderNumbers[0];
+        } else {
+          currentOrderData.OrderId = orderInput;
+          currentOrderData.orderId = orderInput;
+        }
+        
+        updateJSONFromCurrentData();
+        
+        // Log if multiple orders detected
+        if (orderNumbers.length > 1) {
+          logToConsole(`Multiple orders detected: ${orderNumbers.length} orders will be created`, 'info');
+        }
+      }
+    });
+    
+    summaryOrderType.addEventListener('input', () => {
+      if (currentOrderData) {
+        if (!currentOrderData.OrderType) {
+          currentOrderData.OrderType = {};
+        }
+        if (typeof currentOrderData.OrderType === 'object') {
+          currentOrderData.OrderType.OrderTypeId = summaryOrderType.value;
+          currentOrderData.OrderType.orderTypeId = summaryOrderType.value;
+        } else {
+          currentOrderData.OrderType = summaryOrderType.value;
+        }
+        updateJSONFromCurrentData();
+      }
+    });
+    
+    summaryDestinationFacility.addEventListener('input', () => {
+      if (currentOrderData) {
+        currentOrderData.DestinationFacilityId = summaryDestinationFacility.value;
+        currentOrderData.destinationFacilityId = summaryDestinationFacility.value;
+        updateJSONFromCurrentData();
+      }
+    });
+    
+    summaryPickupStart.addEventListener('input', () => {
+      if (currentOrderData) {
+        // Convert datetime-local to ISO format
+        const dateValue = summaryPickupStart.value;
+        if (dateValue) {
+          // datetime-local format: YYYY-MM-DDTHH:mm
+          // Convert to ISO: YYYY-MM-DDTHH:mm:ss
+          const isoValue = dateValue + ':00';
+          currentOrderData.PickupStartDateTime = isoValue;
+          currentOrderData.pickupStartDateTime = isoValue;
+        } else {
+          currentOrderData.PickupStartDateTime = '';
+          currentOrderData.pickupStartDateTime = '';
+        }
+        updateJSONFromCurrentData();
+      }
+    });
+    
+    // Update JSON editor from current order data
+    function updateJSONFromCurrentData() {
+      if (currentOrderData && jsonEditor) {
+        const jsonStr = JSON.stringify(currentOrderData, null, 2);
+        jsonEditor.setValue(jsonStr);
+      }
+    }
+  </script>
+</body>
+</html>
+
