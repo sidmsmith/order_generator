@@ -89,6 +89,15 @@
     .btn-primary:hover { background: #0b5ed7; }
     .btn-success:hover { background: #218838; }
     .btn-secondary:hover { background: #5a6268; }
+    
+    /* Manhattan theme: Load Reference Order button uses blue color */
+    :root.theme-manhattan #loadOrderBtn {
+      background: #3B82F6;
+    }
+    
+    :root.theme-manhattan #loadOrderBtn:hover {
+      background: #2563eb;
+    }
 
     .status-bar {
       display: flex;
@@ -273,7 +282,7 @@
 
       <!-- LOAD ORDER BUTTON -->
       <div class="mb-3 d-flex align-items-center gap-3">
-        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Order</button>
+        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Reference Order</button>
         <span id="loadOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
       </div>
 
