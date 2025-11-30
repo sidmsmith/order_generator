@@ -167,7 +167,7 @@
     <h2 class="text-center mb-4">Order Generator v1.2.6</h2>
 
     <!-- ORG -->
-    <div class="mb-3">
+    <div id="orgSection" class="mb-3">
       <label class="form-label">ORG:</label>
       <div class="d-flex align-items-center gap-2">
         <input type="text" id="org" class="form-control" placeholder="Enter ORG" maxlength="20" style="width: 250px; max-width: 100%;" />
@@ -267,6 +267,7 @@
     // DOM Elements
     const orgInput = document.getElementById('org');
     const authBtn = document.getElementById('authBtn');
+    const orgSection = document.getElementById('orgSection');
     const mainUI = document.getElementById('mainUI');
     const statusEl = document.getElementById('status');
     const orderNumberInput = document.getElementById('orderNumberInput');
@@ -489,6 +490,11 @@
       status('Authenticated – ready!', 'success');
       logToConsole('Authentication: Succeeded', 'success');
       mainUI.style.display = 'block';
+      
+      // Hide ORG section after authentication
+      if (orgSection) {
+        orgSection.style.display = 'none';
+      }
       
       // Load UOMs after authentication
       loadUOMs();
