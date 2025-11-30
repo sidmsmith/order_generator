@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Order Generator v1.2.3</title>
+  <!-- Version: v1.2.4 - OrderId and PickupEndDateTime fixes -->
+  <title>Order Generator v1.2.4</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- CodeMirror for JSON syntax highlighting with folding support -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
@@ -19,7 +19,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/indent-fold.min.js"></script>
   <style>
-    /* Dark Theme (Default) */
     :root {
       --bg-dark: #121212;
       --card-bg: #1e1e1e;
@@ -30,21 +29,6 @@
       --blue-select: #339af0;
       --success: #28a745;
       --primary: #0d6efd;
-    }
-    
-    /* Manhattan Theme */
-    :root.theme-manhattan {
-      --bg-dark: rgb(45, 47, 59);
-      --card-bg: #484e5e;
-      --input-bg: #282c34;
-      --border: #333;
-      --text: #495057;
-      --red-text: #ff6b6b;
-      --blue-select: #339af0;
-      --success: hsl(142.1 76.2% 36.3%);
-      --primary: #3B82F6;
-      --secondary: #6c757d;
-      --shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
 
     body { 
@@ -89,15 +73,6 @@
     .btn-primary:hover { background: #0b5ed7; }
     .btn-success:hover { background: #218838; }
     .btn-secondary:hover { background: #5a6268; }
-    
-    /* Manhattan theme: Load Reference Order button uses blue color */
-    :root.theme-manhattan #loadOrderBtn {
-      background: #3B82F6;
-    }
-    
-    :root.theme-manhattan #loadOrderBtn:hover {
-      background: #2563eb;
-    }
 
     .status-bar {
       display: flex;
@@ -115,58 +90,6 @@
     .form-label { color: #bbbbbb; font-weight: 600; }
     small { color: #999; }
     h2 { color: var(--primary); }
-    
-    /* Theme-specific text colors */
-    :root.theme-manhattan .form-label { color: #bbbbbb; }
-    :root.theme-manhattan small { color: #999; }
-    
-    /* Theme selector gear icon */
-    .theme-selector-btn {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      color: #e0e0e0;
-      padding: 0.5rem;
-      cursor: pointer;
-      font-size: 1.5rem;
-      z-index: 1000;
-      transition: transform 0.2s;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    .theme-selector-btn:hover {
-      transform: rotate(90deg);
-    }
-    
-    /* Ensure gear icon is visible in all themes with proper contrast */
-    :root.theme-manhattan .theme-selector-btn {
-      color: #e0e0e0;
-    }
-    
-    /* Modal styling */
-    .modal-content {
-      background-color: var(--card-bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .modal-header, .modal-footer {
-      border-color: var(--border);
-    }
-    .list-group-item {
-      background-color: var(--input-bg);
-      border-color: var(--border);
-      color: var(--text);
-    }
-    .list-group-item:hover {
-      background-color: var(--card-bg);
-    }
-    .list-group-item.active {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
 
     /* HIDDEN UNTIL AUTH */
     #mainUI { display: none; }
@@ -228,16 +151,6 @@
     .accordion-body {
       background: var(--card-bg) !important;
     }
-    
-    /* Manhattan theme: white text for collapsed accordion buttons */
-    :root.theme-manhattan .accordion-button {
-      color: #ffffff !important;
-    }
-    
-    /* Manhattan theme: keep blue when expanded */
-    :root.theme-manhattan .accordion-button:not(.collapsed) {
-      color: var(--primary) !important;
-    }
 
     /* Summary fields section */
     .summary-section {
@@ -250,14 +163,11 @@
   </style>
 </head>
 <body>
-  <div class="main-card" style="position: relative;">
-    <button class="theme-selector-btn" id="themeSelectorBtn" title="Select Theme">
-      <i class="fas fa-cog"></i>
-    </button>
-    <h2 class="text-center mb-4">Order Generator v1.2.3</h2>
+  <div class="main-card">
+    <h2 class="text-center mb-4">Order Generator v1.2.4</h2>
 
     <!-- ORG -->
-    <div id="authSection" class="mb-3">
+    <div class="mb-3">
       <label class="form-label">ORG:</label>
       <div class="d-flex align-items-center gap-2">
         <input type="text" id="org" class="form-control" placeholder="Enter ORG" maxlength="20" style="width: 250px; max-width: 100%;" />
@@ -273,16 +183,16 @@
 
     <!-- MAIN UI (Hidden until auth) -->
     <div id="mainUI">
-      <!-- REFERENCE ORDER NUMBER INPUT -->
+      <!-- SAMPLE ORDER NUMBER INPUT -->
       <div class="mb-3">
-        <label class="form-label">Reference Order Number:</label>
+        <label class="form-label">Sample Order Number:</label>
         <input type="text" id="orderNumberInput" class="form-control" placeholder="Enter order number to copy" />
         <small>Enter the order number of an existing order to load and copy</small>
       </div>
 
       <!-- LOAD ORDER BUTTON -->
       <div class="mb-3 d-flex align-items-center gap-3">
-        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Reference Order</button>
+        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Order</button>
         <span id="loadOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
       </div>
 
@@ -353,21 +263,6 @@
     </div>
   </div>
 
-  <!-- THEME SELECTOR MODAL -->
-  <div class="modal fade" id="themeModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Select Theme</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="list-group" id="themeList"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     // DOM Elements
     const orgInput = document.getElementById('org');
@@ -395,126 +290,8 @@
     let parsedOrderNumbers = []; // Store parsed order numbers for bulk import
     let availableUOMs = []; // Store available UOMs
 
-    // URL Parameters for cross-app integration
-    const urlParams = new URLSearchParams(window.location.search);
-    const locationParam = urlParams.get('Location');
-    const organizationParam = urlParams.get('Organization');
-    const businessUnitParam = urlParams.get('BusinessUnit');
-    const orderIdParam = urlParams.get('OrderId');
-    
-    // Store URL parameters for use
-    const urlLocation = locationParam || null;
-    const urlOrg = organizationParam || null;
-    const urlBusinessUnit = businessUnitParam || null;
-    const urlOrderId = orderIdParam || null;
-    
-    // Ensure ORG is blank on load (security) unless from URL
-    if (urlOrg) {
-      orgInput.value = urlOrg.trim();
-      // Hide auth section when auto-authenticating
-      const authSection = document.getElementById('authSection');
-      if (authSection) {
-        authSection.style.display = 'none';
-      }
-    } else {
-      orgInput.value = '';
-    }
-    
-    // ===== THEME SYSTEM =====
-    const themeSelectorBtn = document.getElementById('themeSelectorBtn');
-    const themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
-    const themeList = document.getElementById('themeList');
-    const THEME_STORAGE_KEY = 'order_generator_theme';
-    
-    // Theme definitions
-    const themes = {
-      dark: {
-        name: 'Dark',
-        rootClass: ''
-      },
-      manhattan: {
-        name: 'Manhattan',
-        rootClass: 'theme-manhattan'
-      }
-    };
-    
-    // Load saved theme or default to dark
-    function loadTheme() {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-      applyTheme(savedTheme);
-    }
-    
-    // Apply theme
-    function applyTheme(themeName) {
-      const root = document.documentElement;
-      const theme = themes[themeName] || themes.dark;
-      
-      // Remove all theme classes
-      Object.values(themes).forEach(t => {
-        if (t.rootClass) {
-          root.classList.remove(t.rootClass);
-        }
-      });
-      
-      // Apply selected theme
-      if (theme.rootClass) {
-        root.classList.add(theme.rootClass);
-      }
-      
-      // Save to localStorage
-      localStorage.setItem(THEME_STORAGE_KEY, themeName);
-    }
-    
-    // Render theme list in modal
-    function renderThemeList() {
-      themeList.innerHTML = '';
-      const currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-      
-      Object.entries(themes).forEach(([key, theme]) => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = `list-group-item list-group-item-action ${key === currentTheme ? 'active' : ''}`;
-        item.textContent = theme.name;
-        item.onclick = () => {
-          applyTheme(key);
-          themeModal.hide();
-        };
-        themeList.appendChild(item);
-      });
-    }
-    
-    // Theme selector button click handler
-    if (themeSelectorBtn) {
-      themeSelectorBtn.onclick = () => {
-        renderThemeList();
-        themeModal.show();
-      };
-      
-      // Ensure button is always visible after theme changes
-      const observer = new MutationObserver(() => {
-        if (themeSelectorBtn) {
-          themeSelectorBtn.style.display = 'block';
-          themeSelectorBtn.style.visibility = 'visible';
-        }
-      });
-      
-      // Observe theme class changes on root element
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class']
-      });
-    }
-    
-    // Load theme on page load
-    loadTheme();
-    
-    // Ensure gear icon is visible after theme loads
-    if (themeSelectorBtn) {
-      setTimeout(() => {
-        themeSelectorBtn.style.display = 'block';
-        themeSelectorBtn.style.visibility = 'visible';
-      }, 100);
-    }
+    // Ensure ORG is always blank on load (security)
+    orgInput.value = '';
 
     // Initialize CodeMirror editor
     function initJsonEditor() {
@@ -562,11 +339,6 @@
     
     // Load preferences on page load
     loadPreferences();
-    
-    // Populate order number from URL parameter if present (override preferences)
-    if (urlOrderId) {
-      orderNumberInput.value = urlOrderId.trim();
-    }
 
     // Auto-save preferences
     let orderNumberTimeout;
@@ -647,16 +419,7 @@
     window.addEventListener('load', () => {
       // Don't log app_opened to console
       fetch('/api/app_opened', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
-      
-      // Auto-authenticate if Organization parameter is provided in URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlOrg = urlParams.get('Organization');
-      if (urlOrg) {
-        authenticate();
-      } else {
-        orgInput.focus();
-      }
-      
+      orgInput.focus();
       initJsonEditor();
       
       // Date picker button functionality
@@ -697,19 +460,10 @@
       status('Authenticated – ready!', 'success');
       logToConsole('Authentication: Succeeded', 'success');
       mainUI.style.display = 'block';
+      orderNumberInput.focus();
       
       // Load UOMs after authentication
       loadUOMs();
-      
-      // Auto-load order if OrderId was provided in URL
-      if (urlOrderId && orderNumberInput.value.trim() === urlOrderId.trim()) {
-        // Small delay to ensure UI is ready
-        setTimeout(() => {
-          loadOrder();
-        }, 100);
-      } else {
-        orderNumberInput.focus();
-      }
     }
     
     // Load available UOMs
@@ -808,6 +562,66 @@
       }
       
       return { orderNumbers, errors };
+    }
+    
+    // ===== ORDER DATA TRANSFORMATION FUNCTIONS =====
+    
+    // Recursively update all OrderId fields in an object
+    function updateAllOrderIds(obj, newOrderId) {
+      if (!obj || typeof obj !== 'object') return;
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        obj.forEach(item => updateAllOrderIds(item, newOrderId));
+        return;
+      }
+      
+      // Update OrderId fields (both camelCase and PascalCase) - check both direct and inherited
+      if ('OrderId' in obj) {
+        obj.OrderId = newOrderId;
+      }
+      if ('orderId' in obj) {
+        obj.orderId = newOrderId;
+      }
+      
+      // Recursively process all properties (including nested objects and arrays)
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const value = obj[key];
+          if (value !== null && typeof value === 'object') {
+            updateAllOrderIds(value, newOrderId);
+          }
+        }
+      }
+    }
+    
+    // Calculate PickupEndDateTime as PickupStartDateTime + 1 day
+    function calculatePickupEndDateTime(orderData) {
+      const pickupStart = orderData.PickupStartDateTime || orderData.pickupStartDateTime;
+      if (!pickupStart) return;
+      
+      try {
+        const startDate = new Date(pickupStart);
+        if (!isNaN(startDate.getTime())) {
+          // Add 1 day
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 1);
+          
+          // Format as ISO string (YYYY-MM-DDTHH:mm:ss)
+          const year = endDate.getFullYear();
+          const month = String(endDate.getMonth() + 1).padStart(2, '0');
+          const day = String(endDate.getDate()).padStart(2, '0');
+          const hours = String(endDate.getHours()).padStart(2, '0');
+          const minutes = String(endDate.getMinutes()).padStart(2, '0');
+          const seconds = String(endDate.getSeconds()).padStart(2, '0');
+          const isoValue = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+          
+          orderData.PickupEndDateTime = isoValue;
+          orderData.pickupEndDateTime = isoValue;
+        }
+      } catch (e) {
+        logToConsole(`Error calculating PickupEndDateTime: ${e.message}`, 'error');
+      }
     }
     
     // ===== VALIDATION FUNCTIONS =====
@@ -1179,6 +993,9 @@
       // Store parsed order numbers
       parsedOrderNumbers = orderNumbers.length > 0 ? orderNumbers : [orderJson.OrderId || orderJson.orderId || ''];
       
+      // Save original orderJson before any updates (needed for bulk import)
+      const originalOrderJson = JSON.parse(JSON.stringify(orderJson));
+      
       // Validate that orders don't already exist
       createOrderStatus.textContent = 'Validating orders...';
       createOrderStatus.className = 'text-info';
@@ -1208,11 +1025,49 @@
       const useBulk = parsedOrderNumbers.length > 1;
       
       if (useBulk) {
-        // Generate multiple orders from template
+        // Generate multiple orders from template (use original, not updated orderJson)
         const ordersData = parsedOrderNumbers.map((orderNum, index) => {
-          const orderCopy = JSON.parse(JSON.stringify(orderJson));
-          orderCopy.OrderId = orderNum;
-          orderCopy.orderId = orderNum;
+          const orderCopy = JSON.parse(JSON.stringify(originalOrderJson));
+          // Update all OrderId fields recursively with the correct order number for this copy
+          updateAllOrderIds(orderCopy, orderNum);
+          
+          // Verify OrderId updates in OrderLines (explicit check)
+          if (orderCopy.OrderLine && Array.isArray(orderCopy.OrderLine)) {
+            orderCopy.OrderLine.forEach((line, lineIndex) => {
+              if (line.OrderId !== orderNum) {
+                line.OrderId = orderNum;
+              }
+              if (line.orderId !== orderNum) {
+                line.orderId = orderNum;
+              }
+              if (line.Order && line.Order.OrderId !== orderNum) {
+                line.Order.OrderId = orderNum;
+              }
+              if (line.Order && line.Order.orderId !== orderNum) {
+                line.Order.orderId = orderNum;
+              }
+            });
+          }
+          if (orderCopy.orderLine && Array.isArray(orderCopy.orderLine)) {
+            orderCopy.orderLine.forEach((line, lineIndex) => {
+              if (line.OrderId !== orderNum) {
+                line.OrderId = orderNum;
+              }
+              if (line.orderId !== orderNum) {
+                line.orderId = orderNum;
+              }
+              if (line.Order && line.Order.OrderId !== orderNum) {
+                line.Order.OrderId = orderNum;
+              }
+              if (line.Order && line.Order.orderId !== orderNum) {
+                line.Order.orderId = orderNum;
+              }
+            });
+          }
+          
+          logToConsole(`Updated all OrderId fields to: ${orderNum} for order ${index + 1}`, 'info');
+          // Calculate PickupEndDateTime for each order
+          calculatePickupEndDateTime(orderCopy);
           return orderCopy;
         });
 
@@ -1268,6 +1123,50 @@
           createOrderBtn.disabled = false;
         }
       } else {
+        // Single order - update OrderId and PickupEndDateTime
+        if (parsedOrderNumbers.length > 0) {
+          const orderId = parsedOrderNumbers[0];
+          updateAllOrderIds(orderJson, orderId);
+          
+          // Verify OrderId updates in OrderLines (explicit check)
+          if (orderJson.OrderLine && Array.isArray(orderJson.OrderLine)) {
+            orderJson.OrderLine.forEach((line) => {
+              if (line.OrderId !== orderId) {
+                line.OrderId = orderId;
+              }
+              if (line.orderId !== orderId) {
+                line.orderId = orderId;
+              }
+              if (line.Order && line.Order.OrderId !== orderId) {
+                line.Order.OrderId = orderId;
+              }
+              if (line.Order && line.Order.orderId !== orderId) {
+                line.Order.orderId = orderId;
+              }
+            });
+          }
+          if (orderJson.orderLine && Array.isArray(orderJson.orderLine)) {
+            orderJson.orderLine.forEach((line) => {
+              if (line.OrderId !== orderId) {
+                line.OrderId = orderId;
+              }
+              if (line.orderId !== orderId) {
+                line.orderId = orderId;
+              }
+              if (line.Order && line.Order.OrderId !== orderId) {
+                line.Order.OrderId = orderId;
+              }
+              if (line.Order && line.Order.orderId !== orderId) {
+                line.Order.orderId = orderId;
+              }
+            });
+          }
+          
+          logToConsole(`Updated all OrderId fields to: ${orderId}`, 'info');
+        }
+        calculatePickupEndDateTime(orderJson);
+        logToConsole(`Calculated PickupEndDateTime as PickupStartDateTime + 1 day`, 'info');
+        
         // Single order
         const facilityId = `${org.toUpperCase()}-DM1`;
         const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order`;
@@ -1379,9 +1278,6 @@
         return;
       }
       
-      // Only expand accordion if there's only 1 line
-      const shouldExpandFirst = orderLines.length === 1;
-      
       orderLines.forEach((line, index) => {
         const lineId = `line${index}`;
         const itemId = line.ItemId || line.itemId || '';
@@ -1392,11 +1288,11 @@
         accordionItem.className = 'accordion-item';
         accordionItem.innerHTML = `
           <h2 class="accordion-header">
-            <button class="accordion-button ${shouldExpandFirst && index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#${lineId}">
+            <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#${lineId}">
               Order Line ${index + 1} - ${itemId || 'No Item'} (Qty: ${quantity}, UOM: ${uom})
             </button>
           </h2>
-          <div id="${lineId}" class="accordion-collapse collapse ${shouldExpandFirst && index === 0 ? 'show' : ''}" data-bs-parent="#orderLinesAccordion">
+          <div id="${lineId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#orderLinesAccordion">
             <div class="accordion-body">
               <div class="row g-3">
                 <div class="col-md-4">
