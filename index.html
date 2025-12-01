@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.4.0 - Remove Bulk Test button, automatically use Bulk API for multiple orders. Bulk API working with no obvious errors. -->
-  <title>Order Generator v1.4.0</title>
+  <!-- Version: v1.4.1 - Improve bulk import response handling to check SuccessCount and TotalCount -->
+  <title>Order Generator v1.4.1</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- CodeMirror for JSON syntax highlighting with folding support -->
@@ -165,7 +165,7 @@
 </head>
 <body>
   <div class="main-card">
-    <h2 class="text-center mb-4">Order Generator v1.4.0</h2>
+    <h2 class="text-center mb-4">Order Generator v1.4.1</h2>
 
     <!-- ORG -->
     <div id="orgSection" class="mb-3">
@@ -1415,10 +1415,51 @@
             return;
           }
 
-          // Show success message next to button
-          createOrderStatus.textContent = `Successfully imported ${ordersData.length} orders!`;
-          createOrderStatus.className = 'text-success';
-          logToConsole(`Bulk import successful: ${ordersData.length} orders`, 'success');
+          // Check the actual response data for SuccessCount and TotalCount
+          const responseData = res.response?.data || res.response?.Data || res.data || res.response || {};
+          const successCount = responseData.SuccessCount ?? responseData.successCount ?? responseData.Success ?? 0;
+          const totalCount = responseData.TotalCount ?? responseData.totalCount ?? responseData.Total ?? ordersData.length;
+          const failedCount = responseData.FailedCount ?? responseData.failedCount ?? responseData.Failed ?? 0;
+          const failedRecords = responseData.FailedRecords || responseData.failedRecords || [];
+          
+          logToConsole(`Bulk import results: SuccessCount=${successCount}, TotalCount=${totalCount}, FailedCount=${failedCount}`, 'info');
+          
+          if (failedRecords.length > 0) {
+            logToConsole(`Failed Records:`, 'error');
+            failedRecords.forEach((record, idx) => {
+              logToConsole(`  Record ${idx + 1}: ${JSON.stringify(record)}`, 'error');
+            });
+          }
+          
+          // Determine if import was actually successful based on SuccessCount
+          if (successCount === 0 && totalCount > 0) {
+            // All orders failed
+            createOrderStatus.textContent = `Bulk import failed: 0 of ${totalCount} orders imported`;
+            createOrderStatus.className = 'text-danger';
+            logToConsole(`Bulk import failed: 0 of ${totalCount} orders imported`, 'error');
+            if (failedRecords.length > 0) {
+              logToConsole(`All orders failed. Check failed records above.`, 'error');
+            }
+          } else if (successCount > 0 && successCount < totalCount) {
+            // Partial success
+            createOrderStatus.textContent = `Partially successful: ${successCount} of ${totalCount} orders imported`;
+            createOrderStatus.className = 'text-warning';
+            logToConsole(`Bulk import partially successful: ${successCount} of ${totalCount} orders imported`, 'warning');
+            if (failedCount > 0) {
+              logToConsole(`${failedCount} orders failed. Check failed records above.`, 'error');
+            }
+          } else if (successCount === totalCount && totalCount > 0) {
+            // Complete success
+            createOrderStatus.textContent = `Successfully imported ${successCount} of ${totalCount} orders!`;
+            createOrderStatus.className = 'text-success';
+            logToConsole(`Bulk import successful: ${successCount} of ${totalCount} orders imported`, 'success');
+          } else {
+            // Fallback - use res.success but log warning
+            createOrderStatus.textContent = `Bulk import completed (${successCount}/${totalCount} successful)`;
+            createOrderStatus.className = successCount > 0 ? 'text-success' : 'text-danger';
+            logToConsole(`Bulk import completed: ${successCount} of ${totalCount} orders imported`, successCount > 0 ? 'success' : 'error');
+          }
+          
           createOrderBtn.disabled = false;
         } catch (e) {
           createOrderStatus.textContent = `Error: ${e.message}`;
