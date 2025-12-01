@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.4.4 - Add theme selection modal, match update_appt gear icon style -->
-  <title>Order Generator v1.4.4</title>
+  <!-- Version: v1.4.5 - Match update_appt theme modal exactly with all themes and styling -->
+  <title>Order Generator v1.4.5</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- CodeMirror for JSON syntax highlighting with folding support -->
@@ -115,25 +115,70 @@
       pointer-events: none;
     }
 
-    /* Modal styling for dark theme */
-    .modal-content {
+    /* Modal styling for dark theme - matching update_appt exactly */
+    .theme-modal-content {
       background: var(--card-bg) !important;
       border: 1px solid var(--border) !important;
+      color: var(--text) !important;
     }
-    .modal-header {
+    .theme-modal-header {
       border-bottom: 1px solid var(--border) !important;
-    }
-    .modal-footer {
-      border-top: 1px solid var(--border) !important;
-    }
-    .modal-body {
       background: var(--card-bg) !important;
+    }
+    .theme-modal-header .modal-title {
+      color: var(--text) !important;
+    }
+    .theme-modal-footer {
+      border-top: 1px solid var(--border) !important;
+      background: var(--card-bg) !important;
+    }
+    .theme-modal-body {
+      background: var(--card-bg) !important;
+      color: var(--text) !important;
+    }
+    .theme-modal-body .form-label {
+      color: var(--text) !important;
     }
     .btn-close-white {
       filter: invert(1) grayscale(100%) brightness(200%);
     }
-    .theme-option {
+    
+    /* Theme option buttons */
+    .theme-option-btn {
+      background: var(--input-bg) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      text-align: left;
       padding: 0.75rem 1rem;
+      transition: all 0.2s;
+    }
+    .theme-option-btn:hover {
+      background: #333 !important;
+      border-color: var(--primary) !important;
+    }
+    .theme-option-btn.active {
+      border-color: var(--primary) !important;
+      background: rgba(13, 110, 253, 0.1) !important;
+    }
+    .theme-option-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .theme-option-desc {
+      font-size: 0.85em;
+      opacity: 0.8;
+      text-align: left;
+    }
+    .theme-check {
+      color: var(--primary);
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .theme-option-btn.active .theme-check {
+      opacity: 1;
     }
 
     /* HIDDEN UNTIL AUTH */
@@ -210,7 +255,7 @@
 <body>
   <div class="main-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="text-center mb-0" style="flex: 1;">Order Generator v1.4.4</h2>
+      <h2 class="text-center mb-0" style="flex: 1;">Order Generator v1.4.5</h2>
       <button type="button" id="themeToggleBtn" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#themeModal" style="color: #fff; text-decoration: none; font-size: 1.5rem; line-height: 1; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; padding: 0;" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#fff" viewBox="0 0 16 16" style="pointer-events: none;">
           <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
@@ -319,23 +364,33 @@
   <!-- Theme Selection Modal -->
   <div class="modal fade" id="themeModal" tabindex="-1" aria-labelledby="themeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border);">
-        <div class="modal-header" style="border-bottom: 1px solid var(--border);">
-          <h5 class="modal-title" id="themeModalLabel" style="color: var(--text);">Select Theme</h5>
+      <div class="modal-content theme-modal-content">
+        <div class="modal-header theme-modal-header">
+          <h5 class="modal-title" id="themeModalLabel">Select Theme</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body" style="color: var(--text);">
+        <div class="modal-body theme-modal-body">
           <div class="mb-3">
-            <label class="form-label" style="color: var(--text);">Choose your preferred theme:</label>
+            <label class="form-label">Choose your preferred theme:</label>
             <div class="d-flex flex-column gap-2">
-              <button type="button" class="btn btn-primary theme-option" data-theme="manhattan" style="text-align: left; justify-content: flex-start;">
-                <strong>Manhattan Theme</strong>
-                <div style="font-size: 0.85em; opacity: 0.9;">Dark theme optimized for Manhattan Associates</div>
+              <button type="button" class="btn theme-option-btn theme-option-manhattan active" data-theme="manhattan">
+                <div class="theme-option-header">
+                  <strong>Manhattan Theme</strong>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-option-desc">Dark theme optimized for Manhattan Associates</div>
+              </button>
+              <button type="button" class="btn theme-option-btn theme-option-light" data-theme="light">
+                <div class="theme-option-header">
+                  <strong>Light Theme</strong>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-option-desc">Light theme for better visibility</div>
               </button>
             </div>
           </div>
         </div>
-        <div class="modal-footer" style="border-top: 1px solid var(--border);">
+        <div class="modal-footer theme-modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -407,21 +462,6 @@
     const STORAGE_KEY = 'order_generator_preferences';
     const THEME_KEY = 'order_generator_theme';
     
-    // Initialize theme - Manhattan (dark) theme is the default
-    function initializeTheme() {
-      try {
-        const savedTheme = localStorage.getItem(THEME_KEY);
-        if (!savedTheme) {
-          // First time user - set Manhattan theme as default
-          localStorage.setItem(THEME_KEY, 'manhattan');
-        }
-        // Theme is already applied via CSS, but we ensure it's set in localStorage
-        // The dark theme (Manhattan theme) is the default and is always active
-      } catch (e) {
-        console.warn('Failed to initialize theme:', e);
-      }
-    }
-    
     function savePreferences() {
       const prefs = {
         orderNumber: orderNumberInput.value
@@ -446,9 +486,6 @@
         console.warn('Failed to load preferences:', e);
       }
     }
-    
-    // Initialize theme on page load (before other initialization)
-    initializeTheme();
     
     // Load preferences on page load
     loadPreferences();
@@ -2053,27 +2090,101 @@
       }
     }
 
+    // Theme definitions - matching update_appt exactly
+    const themes = {
+      manhattan: {
+        '--bg-dark': '#121212',
+        '--card-bg': '#1e1e1e',
+        '--input-bg': '#2d2d2d',
+        '--border': '#333',
+        '--text': '#e0e0e0',
+        '--red-text': '#ff6b6b',
+        '--blue-select': '#339af0',
+        '--success': '#28a745',
+        '--primary': '#0d6efd'
+      },
+      light: {
+        '--bg-dark': '#f5f5f5',
+        '--card-bg': '#ffffff',
+        '--input-bg': '#ffffff',
+        '--border': '#dee2e6',
+        '--text': '#212529',
+        '--red-text': '#dc3545',
+        '--blue-select': '#0d6efd',
+        '--success': '#28a745',
+        '--primary': '#0d6efd'
+      }
+    };
+    
+    // Apply theme
+    function applyTheme(themeName) {
+      const theme = themes[themeName];
+      if (!theme) return;
+      
+      const root = document.documentElement;
+      Object.keys(theme).forEach(key => {
+        root.style.setProperty(key, theme[key]);
+      });
+      
+      // Update active state in modal
+      document.querySelectorAll('.theme-option-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-theme') === themeName) {
+          btn.classList.add('active');
+        }
+      });
+      
+      try {
+        localStorage.setItem(THEME_KEY, themeName);
+      } catch (err) {
+        console.warn('Failed to save theme preference:', err);
+      }
+    }
+    
+    // Load saved theme or default to manhattan
+    function loadTheme() {
+      try {
+        const savedTheme = localStorage.getItem(THEME_KEY) || 'manhattan';
+        applyTheme(savedTheme);
+      } catch (err) {
+        console.warn('Failed to load theme preference:', err);
+        applyTheme('manhattan');
+      }
+    }
+    
     // Theme selection modal handlers
     function initThemeModal() {
+      // Load current theme on modal open
+      const themeModal = document.getElementById('themeModal');
+      if (themeModal) {
+        themeModal.addEventListener('show.bs.modal', function() {
+          const currentTheme = localStorage.getItem(THEME_KEY) || 'manhattan';
+          document.querySelectorAll('.theme-option-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-theme') === currentTheme) {
+              btn.classList.add('active');
+            }
+          });
+        });
+      }
+      
       // Handle theme option clicks
-      const themeOptions = document.querySelectorAll('.theme-option');
+      const themeOptions = document.querySelectorAll('.theme-option-btn');
       themeOptions.forEach(option => {
         option.addEventListener('click', function() {
           const selectedTheme = this.getAttribute('data-theme');
-          try {
-            localStorage.setItem(THEME_KEY, selectedTheme);
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('themeModal'));
-            if (modal) {
-              modal.hide();
-            }
-            console.log(`Theme changed to: ${selectedTheme}`);
-          } catch (err) {
-            console.warn('Failed to save theme preference:', err);
+          applyTheme(selectedTheme);
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('themeModal'));
+          if (modal) {
+            modal.hide();
           }
         });
       });
     }
+    
+    // Initialize theme on page load
+    loadTheme();
     
     // Initialize theme modal when DOM is ready
     if (document.readyState === 'loading') {
