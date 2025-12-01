@@ -355,7 +355,7 @@ def bulk_import_orders():
     
     # Extract FacilityId from ORG
     facility_id = f"{org.upper()}-DM1"
-    url = f"https://{API_HOST}/dcorder/api/dcorder/order/bulkImport"
+    url = f"https://{API_HOST}/dcorder/api/dcorder/order/bulkImport?stopOnFirstError=false"
     payload = {"Data": ordersData}
     headers = {
         "Authorization": f"Bearer {token}",
