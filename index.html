@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.3.0 - Add data cleaning, order line sync, and Bulk Test button -->
-  <title>Order Generator v1.3.0</title>
+  <!-- Version: v1.3.1 - Fix data cleaning display, OrderId updates, and field syncing -->
+  <title>Order Generator v1.3.1</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- CodeMirror for JSON syntax highlighting with folding support -->
@@ -164,7 +164,7 @@
 </head>
 <body>
   <div class="main-card">
-    <h2 class="text-center mb-4">Order Generator v1.3.0</h2>
+    <h2 class="text-center mb-4">Order Generator v1.3.1</h2>
 
     <!-- ORG -->
     <div id="orgSection" class="mb-3">
@@ -650,17 +650,21 @@
       if (!orderData) return;
       
       // Get values from order header
-      const orderType = orderData.OrderType || orderData.orderType;
+      // Handle OrderType - can be string or object with OrderTypeId
+      let orderType = orderData.OrderType || orderData.orderType;
+      if (orderType && typeof orderType === 'object') {
+        orderType = orderType.OrderTypeId || orderType.orderTypeId || orderType;
+      }
       const destinationFacilityId = orderData.DestinationFacilityId || orderData.destinationFacilityId;
       
       // Sync to all order lines
       const orderLines = orderData.OrderLine || orderData.orderLine || [];
       orderLines.forEach(line => {
-        if (orderType !== undefined && orderType !== null) {
+        if (orderType !== undefined && orderType !== null && orderType !== '') {
           line.OrderType = orderType;
           line.orderType = orderType;
         }
-        if (destinationFacilityId !== undefined && destinationFacilityId !== null) {
+        if (destinationFacilityId !== undefined && destinationFacilityId !== null && destinationFacilityId !== '') {
           line.DestinationFacilityId = destinationFacilityId;
           line.destinationFacilityId = destinationFacilityId;
         }
@@ -685,6 +689,16 @@
         obj.orderId = newOrderId;
       }
       
+      // Also check for nested Order objects (e.g., OrderLine.Order.OrderId)
+      if (obj.Order && typeof obj.Order === 'object') {
+        if ('OrderId' in obj.Order) {
+          obj.Order.OrderId = newOrderId;
+        }
+        if ('orderId' in obj.Order) {
+          obj.Order.orderId = newOrderId;
+        }
+      }
+      
       // Recursively process all properties (including nested objects and arrays)
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
@@ -694,6 +708,52 @@
           }
         }
       }
+    }
+    
+    // Validate that cleaned fields are not present in the payload
+    function validateCleanedFields(obj, path = '') {
+      const errors = [];
+      const fieldsToCheck = [
+        'PK', 'pk',
+        'Unique_Identifier', 'unique_identifier',
+        'CreatedBy', 'createdBy',
+        'CreatedTimestamp', 'createdTimestamp',
+        'UpdatedBy', 'updatedBy',
+        'UpdatedTimestamp', 'updatedTimestamp',
+        'Process', 'process',
+        'ContextId', 'contextId',
+        'PurgeDate', 'purgeDate'
+      ];
+      
+      if (!obj || typeof obj !== 'object') return errors;
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        obj.forEach((item, index) => {
+          errors.push(...validateCleanedFields(item, `${path}[${index}]`));
+        });
+        return errors;
+      }
+      
+      // Check for cleaned fields
+      fieldsToCheck.forEach(field => {
+        if (field in obj) {
+          errors.push(`Found cleaned field '${field}' at path: ${path || 'root'}`);
+        }
+      });
+      
+      // Recursively check nested objects
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const value = obj[key];
+          if (value !== null && typeof value === 'object') {
+            const newPath = path ? `${path}.${key}` : key;
+            errors.push(...validateCleanedFields(value, newPath));
+          }
+        }
+      }
+      
+      return errors;
     }
     
     // Calculate PickupEndDateTime as PickupStartDateTime + 1 day
@@ -958,8 +1018,11 @@
         // Store order data
         currentOrderData = JSON.parse(JSON.stringify(res.orderData)); // Deep copy
         
-        // Display order JSON in editor
-        const jsonStr = JSON.stringify(res.orderData, null, 2);
+        // Clean order data (remove PK, Unique_Identifier, timestamps, etc.) for display
+        cleanOrderData(currentOrderData);
+        
+        // Display cleaned order JSON in editor
+        const jsonStr = JSON.stringify(currentOrderData, null, 2);
         if (jsonEditor) {
           jsonEditor.setValue(jsonStr);
         }
@@ -1107,6 +1170,15 @@
       syncOrderLineFields(orderJson);
       logToConsole('Synced OrderType and DestinationFacilityId from header to order lines', 'info');
       
+      // Validate that cleaned fields are not present
+      const validationErrors = validateCleanedFields(orderJson);
+      if (validationErrors.length > 0) {
+        logToConsole('WARNING: Found cleaned fields in payload:', 'error');
+        validationErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
+      } else {
+        logToConsole('Validation passed: No cleaned fields found in payload', 'success');
+      }
+      
       // Save original orderJson before any updates (needed for bulk import)
       const originalOrderJson = JSON.parse(JSON.stringify(orderJson));
       
@@ -1153,38 +1225,35 @@
           // Update all OrderId fields recursively with the correct order number for this copy
           updateAllOrderIds(orderCopy, orderNum);
           
-          // Verify OrderId updates in OrderLines (explicit check)
+          // Verify OrderId updates in OrderLines (explicit check after recursive update)
           if (orderCopy.OrderLine && Array.isArray(orderCopy.OrderLine)) {
             orderCopy.OrderLine.forEach((line, lineIndex) => {
-              if (line.OrderId !== orderNum) {
-                line.OrderId = orderNum;
-              }
-              if (line.orderId !== orderNum) {
-                line.orderId = orderNum;
-              }
-              if (line.Order && line.Order.OrderId !== orderNum) {
+              // Ensure all OrderId fields are updated
+              line.OrderId = orderNum;
+              line.orderId = orderNum;
+              if (line.Order) {
                 line.Order.OrderId = orderNum;
-              }
-              if (line.Order && line.Order.orderId !== orderNum) {
                 line.Order.orderId = orderNum;
               }
             });
           }
           if (orderCopy.orderLine && Array.isArray(orderCopy.orderLine)) {
             orderCopy.orderLine.forEach((line, lineIndex) => {
-              if (line.OrderId !== orderNum) {
-                line.OrderId = orderNum;
-              }
-              if (line.orderId !== orderNum) {
-                line.orderId = orderNum;
-              }
-              if (line.Order && line.Order.OrderId !== orderNum) {
+              // Ensure all OrderId fields are updated
+              line.OrderId = orderNum;
+              line.orderId = orderNum;
+              if (line.Order) {
                 line.Order.OrderId = orderNum;
-              }
-              if (line.Order && line.Order.orderId !== orderNum) {
                 line.Order.orderId = orderNum;
               }
             });
+          }
+          
+          // Validate cleaned fields are not present
+          const validationErrors = validateCleanedFields(orderCopy);
+          if (validationErrors.length > 0) {
+            logToConsole(`WARNING: Found cleaned fields in order ${orderNum}:`, 'error');
+            validationErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
           }
           
           logToConsole(`Updated all OrderId fields to: ${orderNum} for order ${index + 1}`, 'info');
@@ -1364,38 +1433,37 @@
           const orderId = parsedOrderNumbers[0];
           updateAllOrderIds(orderJson, orderId);
           
-          // Verify OrderId updates in OrderLines (explicit check)
+          // Verify OrderId updates in OrderLines (explicit check after recursive update)
           if (orderJson.OrderLine && Array.isArray(orderJson.OrderLine)) {
             orderJson.OrderLine.forEach((line) => {
-              if (line.OrderId !== orderId) {
-                line.OrderId = orderId;
-              }
-              if (line.orderId !== orderId) {
-                line.orderId = orderId;
-              }
-              if (line.Order && line.Order.OrderId !== orderId) {
+              // Ensure all OrderId fields are updated
+              line.OrderId = orderId;
+              line.orderId = orderId;
+              if (line.Order) {
                 line.Order.OrderId = orderId;
-              }
-              if (line.Order && line.Order.orderId !== orderId) {
                 line.Order.orderId = orderId;
               }
             });
           }
           if (orderJson.orderLine && Array.isArray(orderJson.orderLine)) {
             orderJson.orderLine.forEach((line) => {
-              if (line.OrderId !== orderId) {
-                line.OrderId = orderId;
-              }
-              if (line.orderId !== orderId) {
-                line.orderId = orderId;
-              }
-              if (line.Order && line.Order.OrderId !== orderId) {
+              // Ensure all OrderId fields are updated
+              line.OrderId = orderId;
+              line.orderId = orderId;
+              if (line.Order) {
                 line.Order.OrderId = orderId;
-              }
-              if (line.Order && line.Order.orderId !== orderId) {
                 line.Order.orderId = orderId;
               }
             });
+          }
+          
+          // Validate cleaned fields are not present
+          const validationErrors = validateCleanedFields(orderJson);
+          if (validationErrors.length > 0) {
+            logToConsole('WARNING: Found cleaned fields in payload:', 'error');
+            validationErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
+          } else {
+            logToConsole('Validation passed: No cleaned fields found in payload', 'success');
           }
           
           logToConsole(`Updated all OrderId fields to: ${orderId}`, 'info');
@@ -1619,38 +1687,35 @@
         // Update all OrderId fields recursively
         updateAllOrderIds(orderCopy, orderNum);
         
-        // Verify OrderId updates in OrderLines (explicit check)
+        // Verify OrderId updates in OrderLines (explicit check after recursive update)
         if (orderCopy.OrderLine && Array.isArray(orderCopy.OrderLine)) {
           orderCopy.OrderLine.forEach((line) => {
-            if (line.OrderId !== orderNum) {
-              line.OrderId = orderNum;
-            }
-            if (line.orderId !== orderNum) {
-              line.orderId = orderNum;
-            }
-            if (line.Order && line.Order.OrderId !== orderNum) {
+            // Ensure all OrderId fields are updated
+            line.OrderId = orderNum;
+            line.orderId = orderNum;
+            if (line.Order) {
               line.Order.OrderId = orderNum;
-            }
-            if (line.Order && line.Order.orderId !== orderNum) {
               line.Order.orderId = orderNum;
             }
           });
         }
         if (orderCopy.orderLine && Array.isArray(orderCopy.orderLine)) {
           orderCopy.orderLine.forEach((line) => {
-            if (line.OrderId !== orderNum) {
-              line.OrderId = orderNum;
-            }
-            if (line.orderId !== orderNum) {
-              line.orderId = orderNum;
-            }
-            if (line.Order && line.Order.OrderId !== orderNum) {
+            // Ensure all OrderId fields are updated
+            line.OrderId = orderNum;
+            line.orderId = orderNum;
+            if (line.Order) {
               line.Order.OrderId = orderNum;
-            }
-            if (line.Order && line.Order.orderId !== orderNum) {
               line.Order.orderId = orderNum;
             }
           });
+        }
+        
+        // Validate cleaned fields are not present
+        const validationErrors = validateCleanedFields(orderCopy);
+        if (validationErrors.length > 0) {
+          logToConsole(`WARNING: Found cleaned fields in order ${orderNum}:`, 'error');
+          validationErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
         }
         
         // Calculate PickupEndDateTime for each order
@@ -2023,15 +2088,21 @@
     
     summaryOrderType.addEventListener('input', () => {
       if (currentOrderData) {
+        const orderTypeValue = summaryOrderType.value.trim();
         if (!currentOrderData.OrderType) {
-          currentOrderData.OrderType = {};
+          currentOrderData.OrderType = orderTypeValue || '';
         }
         if (typeof currentOrderData.OrderType === 'object') {
-          currentOrderData.OrderType.OrderTypeId = summaryOrderType.value;
-          currentOrderData.OrderType.orderTypeId = summaryOrderType.value;
+          currentOrderData.OrderType.OrderTypeId = orderTypeValue;
+          currentOrderData.OrderType.orderTypeId = orderTypeValue;
+          // Also set string value for syncing
+          currentOrderData.orderType = orderTypeValue;
         } else {
-          currentOrderData.OrderType = summaryOrderType.value;
+          currentOrderData.OrderType = orderTypeValue || '';
+          currentOrderData.orderType = orderTypeValue || '';
         }
+        // Sync OrderType to all order lines
+        syncOrderLineFields(currentOrderData);
         updateJSONFromCurrentData();
       }
     });
@@ -2040,6 +2111,8 @@
       if (currentOrderData) {
         currentOrderData.DestinationFacilityId = summaryDestinationFacility.value;
         currentOrderData.destinationFacilityId = summaryDestinationFacility.value;
+        // Sync DestinationFacilityId to all order lines
+        syncOrderLineFields(currentOrderData);
         updateJSONFromCurrentData();
       }
     });
