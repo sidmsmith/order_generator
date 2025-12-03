@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.4.7 - Added Vercel Analytics -->
-  <title>Order Generator v1.4.7</title>
+  <title>Order Generator v1.2.0</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -12,14 +11,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
-  <!-- Load CodeMirror scripts asynchronously to not block authentication -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js" defer></script>
-  <!-- JSON mode is part of JavaScript mode, so we don't need a separate json.min.js file -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/indent-fold.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/json/json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/indent-fold.min.js"></script>
   <style>
     /* Dark Theme (Default) */
     :root {
@@ -108,52 +106,49 @@
     .form-label { color: #bbbbbb; font-weight: 600; }
     small { color: #999; }
     h2 { color: var(--primary); }
-
+    
     /* Theme-specific text colors */
     :root.theme-manhattan .form-label { color: #bbbbbb; }
     :root.theme-manhattan small { color: #999; }
     
-    /* Theme selector gear icon - always white */
+    /* Theme selector gear icon */
     .theme-selector-btn {
       position: absolute;
       top: 1rem;
       right: 1rem;
       background: none;
       border: none;
-      color: #ffffff !important; /* Always white */
+      color: var(--text);
       padding: 0.5rem;
       cursor: pointer;
       font-size: 1.5rem;
       z-index: 1000;
-      transition: opacity 0.2s, transform 0.3s ease;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
+      transition: opacity 0.2s;
     }
     .theme-selector-btn:hover {
       opacity: 0.7;
-      transform: rotate(90deg);
     }
     
     /* Modal styling */
     .modal-content {
-      background: var(--card-bg) !important;
-      border: 1px solid var(--border) !important;
-      color: var(--text) !important;
+      background-color: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
     }
-    .modal-header {
-      border-bottom: 1px solid var(--border) !important;
-      background: var(--card-bg) !important;
+    .modal-header, .modal-footer {
+      border-color: var(--border);
     }
-    .modal-header .modal-title {
-      color: var(--text) !important;
+    .list-group-item {
+      background-color: var(--input-bg);
+      border-color: var(--border);
+      color: var(--text);
     }
-    .modal-body {
-      background: var(--card-bg) !important;
-      color: var(--text) !important;
+    .list-group-item:hover {
+      background-color: var(--card-bg);
     }
-    .btn-close-white {
-      filter: invert(1) grayscale(100%) brightness(200%);
+    .list-group-item.active {
+      background-color: var(--primary);
+      border-color: var(--primary);
     }
 
     /* HIDDEN UNTIL AUTH */
@@ -217,16 +212,6 @@
       background: var(--card-bg) !important;
     }
 
-    /* Manhattan theme: white text for collapsed accordion buttons */
-    :root.theme-manhattan .accordion-button {
-      color: #ffffff !important;
-    }
-    
-    /* Manhattan theme: keep blue when expanded */
-    :root.theme-manhattan .accordion-button:not(.collapsed) {
-      color: var(--primary) !important;
-    }
-
     /* Summary fields section */
     .summary-section {
       background: var(--input-bg);
@@ -242,10 +227,10 @@
     <button class="theme-selector-btn" id="themeSelectorBtn" title="Select Theme">
       <i class="fas fa-cog"></i>
     </button>
-    <h2 class="text-center mb-4">Order Generator v1.4.7</h2>
+    <h2 class="text-center mb-4">Order Generator v1.2.0</h2>
 
     <!-- ORG -->
-    <div id="orgSection" class="mb-3">
+    <div id="authSection" class="mb-3">
       <label class="form-label">ORG:</label>
       <div class="d-flex align-items-center gap-2">
         <input type="text" id="org" class="form-control" placeholder="Enter ORG" maxlength="20" style="width: 250px; max-width: 100%;" />
@@ -360,7 +345,6 @@
     // DOM Elements
     const orgInput = document.getElementById('org');
     const authBtn = document.getElementById('authBtn');
-    const orgSection = document.getElementById('orgSection');
     const mainUI = document.getElementById('mainUI');
     const statusEl = document.getElementById('status');
     const orderNumberInput = document.getElementById('orderNumberInput');
@@ -384,37 +368,117 @@
     let parsedOrderNumbers = []; // Store parsed order numbers for bulk import
     let availableUOMs = []; // Store available UOMs
 
-    // Ensure ORG is always blank on load (security)
-    orgInput.value = '';
+    // URL Parameters for cross-app integration
+    const urlParams = new URLSearchParams(window.location.search);
+    const locationParam = urlParams.get('Location');
+    const organizationParam = urlParams.get('Organization');
+    const businessUnitParam = urlParams.get('BusinessUnit');
+    
+    // Store URL parameters for use
+    const urlLocation = locationParam || null;
+    const urlOrg = organizationParam || null;
+    const urlBusinessUnit = businessUnitParam || null;
+    
+    // Ensure ORG is blank on load (security) unless from URL
+    if (urlOrg) {
+      orgInput.value = urlOrg.trim();
+      // Hide auth section when auto-authenticating
+      const authSection = document.getElementById('authSection');
+      if (authSection) {
+        authSection.style.display = 'none';
+      }
+    } else {
+      orgInput.value = '';
+    }
+    
+    // ===== THEME SYSTEM =====
+    const themeSelectorBtn = document.getElementById('themeSelectorBtn');
+    const themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
+    const themeList = document.getElementById('themeList');
+    const THEME_STORAGE_KEY = 'order_generator_theme';
+    
+    // Theme definitions
+    const themes = {
+      dark: {
+        name: 'Dark',
+        rootClass: ''
+      },
+      manhattan: {
+        name: 'Manhattan',
+        rootClass: 'theme-manhattan'
+      }
+    };
+    
+    // Load saved theme or default to dark
+    function loadTheme() {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+      applyTheme(savedTheme);
+    }
+    
+    // Apply theme
+    function applyTheme(themeName) {
+      const root = document.documentElement;
+      const theme = themes[themeName] || themes.dark;
+      
+      // Remove all theme classes
+      Object.values(themes).forEach(t => {
+        if (t.rootClass) {
+          root.classList.remove(t.rootClass);
+        }
+      });
+      
+      // Apply selected theme
+      if (theme.rootClass) {
+        root.classList.add(theme.rootClass);
+      }
+      
+      // Save to localStorage
+      localStorage.setItem(THEME_STORAGE_KEY, themeName);
+    }
+    
+    // Render theme list in modal
+    function renderThemeList() {
+      themeList.innerHTML = '';
+      const currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+      
+      Object.entries(themes).forEach(([key, theme]) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `list-group-item list-group-item-action ${key === currentTheme ? 'active' : ''}`;
+        item.textContent = theme.name;
+        item.onclick = () => {
+          applyTheme(key);
+          themeModal.hide();
+        };
+        themeList.appendChild(item);
+      });
+    }
+    
+    // Theme selector button click handler
+    if (themeSelectorBtn) {
+      themeSelectorBtn.onclick = () => {
+        renderThemeList();
+        themeModal.show();
+      };
+    }
+    
+    // Load theme on page load
+    loadTheme();
 
     // Initialize CodeMirror editor
     function initJsonEditor() {
       if (jsonEditor) return;
-      
-      // Check if CodeMirror is loaded, if not, use textarea fallback
-      if (typeof CodeMirror === 'undefined') {
-        logToConsole('CodeMirror not loaded yet, using textarea fallback', 'info');
-        jsonTextarea.style.display = 'block';
-        return;
-      }
-      
-      try {
-        jsonEditor = CodeMirror.fromTextArea(jsonTextarea, {
-          mode: { name: "javascript", json: true },
-          theme: "monokai",
-          lineNumbers: true,
-          indentUnit: 2,
-          autoCloseBrackets: true,
-          matchBrackets: true,
-          lineWrapping: true,
-          foldGutter: true,
-          gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
-        });
-        logToConsole('CodeMirror editor initialized successfully', 'success');
-      } catch (e) {
-        logToConsole(`CodeMirror initialization failed: ${e.message}, using textarea fallback`, 'error');
-        jsonTextarea.style.display = 'block';
-      }
+      jsonEditor = CodeMirror.fromTextArea(jsonTextarea, {
+        mode: { name: "javascript", json: true },
+        theme: "monokai",
+        lineNumbers: true,
+        indentUnit: 2,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lineWrapping: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+      });
     }
 
     // ===== LOCALSTORAGE PERSISTENCE =====
@@ -523,85 +587,21 @@
       }
     }
 
-    // Attach authentication handlers - try multiple approaches to ensure it works
-    function attachAuthHandlers() {
-      console.log('attachAuthHandlers called');
-      const authButton = document.getElementById('authBtn');
-      const orgInputField = document.getElementById('org');
-      
-      console.log('authButton:', authButton);
-      console.log('orgInputField:', orgInputField);
-      
-      // Attach event handlers for authentication
-      if (authButton) {
-        // Remove any existing handlers first
-        authButton.onclick = null;
-        // Add new handler with explicit logging
-        authButton.onclick = function(e) {
-          console.log('AUTH BUTTON CLICKED!', e);
-          e.preventDefault();
-          e.stopPropagation();
-          logToConsole('Authentication button clicked!', 'info');
-          console.log('Calling authenticate()...');
-          authenticate().then(() => {
-            console.log('Authentication succeeded');
-          }).catch(err => {
-            console.error('Authentication error:', err);
-            logToConsole(`Authentication error: ${err.message}`, 'error');
-          });
-        };
-        console.log('Authentication button handler attached');
-        logToConsole('Authentication button handler attached successfully', 'success');
-      } else {
-        console.error('ERROR: authBtn element not found!');
-        logToConsole('ERROR: authBtn element not found! Check HTML for id="authBtn"', 'error');
-      }
-      
-      // Allow Enter key to trigger authentication
-      if (orgInputField) {
-        orgInputField.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') {
-            console.log('Enter key pressed in org input');
-            authenticate().catch(err => {
-              console.error('Authentication error:', err);
-              logToConsole(`Authentication error: ${err.message}`, 'error');
-            });
-          }
-        });
-        console.log('Enter key handler attached to org input');
-        logToConsole('Enter key handler attached to org input', 'info');
-      } else {
-        console.error('ERROR: org input element not found!');
-        logToConsole('ERROR: org input element not found!', 'error');
-      }
-    }
-    
-    // Try attaching handlers immediately if DOM is already ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', attachAuthHandlers);
-    } else {
-      // DOM is already ready
-      attachAuthHandlers();
-    }
-    
-    // Also try on window load as backup
-    window.addEventListener('load', () => {
-      console.log('Window load event fired');
-      // Re-attach handlers as backup
-      attachAuthHandlers();
-    });
-    
-    // Window load for other initialization (separate from auth handlers)
+    // App opened
     window.addEventListener('load', () => {
       // Don't log app_opened to console
       fetch('/api/app_opened', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
       
-      // Initialize JSON editor (non-blocking - won't break if CodeMirror fails)
-      try {
-        initJsonEditor();
-      } catch (e) {
-        logToConsole(`JSON editor initialization error (non-critical): ${e.message}`, 'error');
+      // Auto-authenticate if Organization parameter is provided in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlOrg = urlParams.get('Organization');
+      if (urlOrg) {
+        authenticate();
+      } else {
+        orgInput.focus();
       }
+      
+      initJsonEditor();
       
       // Date picker button functionality
       const pickupStartCalendarBtn = document.getElementById('pickupStartCalendarBtn');
@@ -610,68 +610,18 @@
           summaryPickupStart.showPicker ? summaryPickupStart.showPicker() : summaryPickupStart.focus();
         });
       }
-      
-      // Check for URL parameters for auto-authentication and order loading
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlOrg = urlParams.get('Organization');
-      const urlOrderId = urlParams.get('OrderId');
-      
-      if (urlOrg && urlOrg.trim()) {
-        // Auto-populate ORG and authenticate
-        orgInput.value = urlOrg.trim();
-        logToConsole(`ORG detected in URL: ${urlOrg.trim()}. Auto-authenticating...`, 'info');
-        
-        // Auto-authenticate
-        authenticate().then(() => {
-          // After authentication, if OrderId is in URL, populate it and auto-load
-          if (urlOrderId && urlOrderId.trim()) {
-            orderNumberInput.value = urlOrderId.trim();
-            logToConsole(`OrderId detected in URL: ${urlOrderId.trim()}. Auto-loading order...`, 'info');
-            
-            // Auto-load the order
-            loadOrder();
-          } else {
-            orderNumberInput.focus();
-          }
-        }).catch(error => {
-          logToConsole(`Auto-authentication error: ${error.message}`, 'error');
-          orgInput.focus();
-        });
-      } else {
-        orgInput.focus();
-      }
     });
 
     // Auth
     async function authenticate() {
-      console.log('authenticate() function called');
-      logToConsole('=== AUTHENTICATE FUNCTION CALLED ===', 'info');
-      
-      // Re-query orgInput to ensure it exists
-      const orgInputElement = document.getElementById('org') || orgInput;
-      if (!orgInputElement) {
-        const errorMsg = 'ORG input element not found';
-        console.error(errorMsg);
-        logToConsole(errorMsg, 'error');
-        throw new Error(errorMsg);
-      }
-      
-      const org = orgInputElement.value.trim();
-      console.log('ORG value:', org);
-      logToConsole(`ORG value: ${org}`, 'info');
-      
+      const org = orgInput.value.trim();
       if (!org) {
         status('ORG required', 'error');
-        if (mainUI) mainUI.style.display = 'none';
-        throw new Error('ORG required');
+        mainUI.style.display = 'none';
+        return;
       }
-      
       status('Authenticating...');
-      logToConsole('Calling API: auth', 'info');
-      console.log('Calling api("auth", { org }, false)');
-      
       const res = await api('auth', { org }, false);
-      console.log('API response:', res);
       if (!res.success) {
         // Log detailed error to console
         logToConsole('=== AUTH API ERROR ===', 'error');
@@ -685,35 +635,23 @@
         status('Authentication failed', 'error');
         logToConsole('Authentication: Failed', 'error');
         mainUI.style.display = 'none';
-        throw new Error(res.error || 'Authentication failed');
+        return;
       }
       token = res.token;
       status('Authenticated – ready!', 'success');
       logToConsole('Authentication: Succeeded', 'success');
       mainUI.style.display = 'block';
+      orderNumberInput.focus();
       
-      // Hide ORG section after authentication
-      if (orgSection) {
-        orgSection.style.display = 'none';
-      }
-      
-      // Load UOMs after authentication (don't let errors crash the app)
-      try {
-        loadUOMs().catch(err => {
-          logToConsole(`Warning: Failed to load UOMs: ${err.message}`, 'error');
-        });
-      } catch (e) {
-        logToConsole(`Warning: Error loading UOMs: ${e.message}`, 'error');
-      }
-      
-      return { success: true, token };
+      // Load UOMs after authentication
+      loadUOMs();
     }
     
     // Load available UOMs
     async function loadUOMs() {
       const org = orgInput.value.trim();
       if (!org || !token) return;
-
+      
       try {
         const res = await api('search_uoms', { org, token }, false);
         if (res.success && res.data) {
@@ -724,6 +662,11 @@
         logToConsole(`Error loading UOMs: ${e.message}`, 'error');
       }
     }
+
+    orgInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') authenticate();
+    });
+    authBtn.onclick = authenticate;
 
     // ===== ORDER NUMBER PARSING =====
     
@@ -800,199 +743,6 @@
       }
       
       return { orderNumbers, errors };
-    }
-    
-    // ===== ORDER DATA TRANSFORMATION FUNCTIONS =====
-    
-    // Recursively remove specified fields from an object
-    function cleanOrderData(obj) {
-      if (!obj || typeof obj !== 'object') return;
-      
-      // Handle arrays
-      if (Array.isArray(obj)) {
-        obj.forEach(item => cleanOrderData(item));
-        return;
-      }
-      
-      // Fields to remove
-      const fieldsToRemove = [
-        'PK', 'pk',
-        'Unique_Identifier', 'unique_identifier', 'Unique_Identifier',
-        'CreatedBy', 'createdBy',
-        'CreatedTimestamp', 'createdTimestamp',
-        'UpdatedBy', 'updatedBy',
-        'UpdatedTimestamp', 'updatedTimestamp',
-        'Process', 'process',
-        'ContextId', 'contextId',
-        'PurgeDate', 'purgeDate'
-      ];
-      
-      // Remove specified fields
-      fieldsToRemove.forEach(field => {
-        if (field in obj) {
-          delete obj[field];
-        }
-      });
-      
-      // Recursively process all properties (including nested objects and arrays)
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          const value = obj[key];
-          if (value !== null && typeof value === 'object') {
-            cleanOrderData(value);
-          }
-        }
-      }
-    }
-    
-    // Sync OrderType and DestinationFacilityId from order header to all order lines
-    // Also sync DisplayQuantity and OriginalOrderedQuantity to match OrderedQuantity
-    function syncOrderLineFields(orderData) {
-      if (!orderData) return;
-      
-      // Get values from order header
-      // Handle OrderType - can be string or object with OrderTypeId
-      let orderType = orderData.OrderType || orderData.orderType;
-      if (orderType && typeof orderType === 'object') {
-        orderType = orderType.OrderTypeId || orderType.orderTypeId || orderType;
-      }
-      const destinationFacilityId = orderData.DestinationFacilityId || orderData.destinationFacilityId;
-      
-      // Sync to all order lines
-      const orderLines = orderData.OrderLine || orderData.orderLine || [];
-      orderLines.forEach(line => {
-        if (orderType !== undefined && orderType !== null && orderType !== '') {
-          line.OrderType = orderType;
-          line.orderType = orderType;
-        }
-        if (destinationFacilityId !== undefined && destinationFacilityId !== null && destinationFacilityId !== '') {
-          line.DestinationFacilityId = destinationFacilityId;
-          line.destinationFacilityId = destinationFacilityId;
-        }
-        
-        // Sync DisplayQuantity and OriginalOrderedQuantity to match OrderedQuantity
-        const orderedQty = line.OrderedQuantity || line.orderedQuantity || line.Quantity || line.quantity || 0;
-        if (orderedQty !== undefined && orderedQty !== null) {
-          line.DisplayQuantity = orderedQty;
-          line.displayQuantity = orderedQty;
-          line.OriginalOrderedQuantity = orderedQty;
-          line.originalOrderedQuantity = orderedQty;
-        }
-      });
-    }
-    
-    // Recursively update all OrderId fields in an object
-    function updateAllOrderIds(obj, newOrderId) {
-      if (!obj || typeof obj !== 'object') return;
-      
-      // Handle arrays
-      if (Array.isArray(obj)) {
-        obj.forEach(item => updateAllOrderIds(item, newOrderId));
-        return;
-      }
-      
-      // Update OrderId fields (both camelCase and PascalCase) - check both direct and inherited
-      if ('OrderId' in obj) {
-        obj.OrderId = newOrderId;
-      }
-      if ('orderId' in obj) {
-        obj.orderId = newOrderId;
-      }
-      
-      // Also check for nested Order objects (e.g., OrderLine.Order.OrderId)
-      if (obj.Order && typeof obj.Order === 'object') {
-        if ('OrderId' in obj.Order) {
-          obj.Order.OrderId = newOrderId;
-        }
-        if ('orderId' in obj.Order) {
-          obj.Order.orderId = newOrderId;
-        }
-      }
-      
-      // Recursively process all properties (including nested objects and arrays)
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          const value = obj[key];
-          if (value !== null && typeof value === 'object') {
-            updateAllOrderIds(value, newOrderId);
-          }
-        }
-      }
-    }
-    
-    // Validate that cleaned fields are not present in the payload
-    function validateCleanedFields(obj, path = '') {
-      const errors = [];
-      const fieldsToCheck = [
-        'PK', 'pk',
-        'Unique_Identifier', 'unique_identifier',
-        'CreatedBy', 'createdBy',
-        'CreatedTimestamp', 'createdTimestamp',
-        'UpdatedBy', 'updatedBy',
-        'UpdatedTimestamp', 'updatedTimestamp',
-        'Process', 'process',
-        'ContextId', 'contextId',
-        'PurgeDate', 'purgeDate'
-      ];
-      
-      if (!obj || typeof obj !== 'object') return errors;
-      
-      // Handle arrays
-      if (Array.isArray(obj)) {
-        obj.forEach((item, index) => {
-          errors.push(...validateCleanedFields(item, `${path}[${index}]`));
-        });
-        return errors;
-      }
-      
-      // Check for cleaned fields
-      fieldsToCheck.forEach(field => {
-        if (field in obj) {
-          errors.push(`Found cleaned field '${field}' at path: ${path || 'root'}`);
-        }
-      });
-      
-      // Recursively check nested objects
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          const value = obj[key];
-          if (value !== null && typeof value === 'object') {
-            const newPath = path ? `${path}.${key}` : key;
-            errors.push(...validateCleanedFields(value, newPath));
-          }
-        }
-      }
-      
-      return errors;
-    }
-    
-    // Calculate PickupEndDateTime as PickupStartDateTime + 1 day
-    function calculatePickupEndDateTime(orderData) {
-      const pickupStart = orderData.PickupStartDateTime || orderData.pickupStartDateTime;
-      if (!pickupStart) return;
-      
-      try {
-        const startDate = new Date(pickupStart);
-        if (!isNaN(startDate.getTime())) {
-          // Add 1 day
-          const endDate = new Date(startDate);
-          endDate.setDate(endDate.getDate() + 1);
-          
-          // Format as ISO string (YYYY-MM-DDTHH:mm:ss)
-          const year = endDate.getFullYear();
-          const month = String(endDate.getMonth() + 1).padStart(2, '0');
-          const day = String(endDate.getDate()).padStart(2, '0');
-          const hours = String(endDate.getHours()).padStart(2, '0');
-          const minutes = String(endDate.getMinutes()).padStart(2, '0');
-          const seconds = String(endDate.getSeconds()).padStart(2, '0');
-          const isoValue = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-          
-          orderData.PickupEndDateTime = isoValue;
-          orderData.pickupEndDateTime = isoValue;
-        }
-      } catch (e) {
-        logToConsole(`Error calculating PickupEndDateTime: ${e.message}`, 'error');
-      }
     }
     
     // ===== VALIDATION FUNCTIONS =====
@@ -1228,11 +978,8 @@
         // Store order data
         currentOrderData = JSON.parse(JSON.stringify(res.orderData)); // Deep copy
         
-        // Clean order data (remove PK, Unique_Identifier, timestamps, etc.) for display
-        cleanOrderData(currentOrderData);
-        
-        // Display cleaned order JSON in editor
-        const jsonStr = JSON.stringify(currentOrderData, null, 2);
+        // Display order JSON in editor
+        const jsonStr = JSON.stringify(res.orderData, null, 2);
         if (jsonEditor) {
           jsonEditor.setValue(jsonStr);
         }
@@ -1245,7 +992,6 @@
         summarySection.style.display = 'block';
         orderLinesSection.style.display = 'block';
         createOrderButtonSection.style.display = 'block';
-        
         
         // Show success message next to button
         loadOrderStatus.textContent = 'Order loaded successfully!';
@@ -1368,26 +1114,6 @@
       // Store parsed order numbers
       parsedOrderNumbers = orderNumbers.length > 0 ? orderNumbers : [orderJson.OrderId || orderJson.orderId || ''];
       
-      // Clean order data (remove PK, Unique_Identifier, timestamps, etc.)
-      cleanOrderData(orderJson);
-      logToConsole('Cleaned order data (removed PK, Unique_Identifier, timestamps, etc.)', 'info');
-      
-      // Sync OrderType and DestinationFacilityId from header to order lines
-      syncOrderLineFields(orderJson);
-      logToConsole('Synced OrderType and DestinationFacilityId from header to order lines', 'info');
-      
-      // Validate that cleaned fields are not present
-      const cleanedFieldsErrors = validateCleanedFields(orderJson);
-      if (cleanedFieldsErrors.length > 0) {
-        logToConsole('WARNING: Found cleaned fields in payload:', 'error');
-        cleanedFieldsErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
-      } else {
-        logToConsole('Validation passed: No cleaned fields found in payload', 'success');
-      }
-      
-      // Save original orderJson before any updates (needed for bulk import)
-      const originalOrderJson = JSON.parse(JSON.stringify(orderJson));
-      
       // Validate that orders don't already exist
       createOrderStatus.textContent = 'Validating orders...';
       createOrderStatus.className = 'text-info';
@@ -1413,62 +1139,20 @@
       
       logToConsole(`All orders validated - none exist in system`, 'success');
       
-      // Use bulk import API if multiple orders, otherwise single order API
+      // Check if we should use bulk import (multiple orders)
       const useBulk = parsedOrderNumbers.length > 1;
       
       if (useBulk) {
-        // Generate multiple orders from template (use original, not updated orderJson)
+        // Generate multiple orders from template
         const ordersData = parsedOrderNumbers.map((orderNum, index) => {
-          const orderCopy = JSON.parse(JSON.stringify(originalOrderJson));
-          
-          // Clean order data for this copy
-          cleanOrderData(orderCopy);
-          
-          // Sync OrderType and DestinationFacilityId from header to order lines
-          syncOrderLineFields(orderCopy);
-          
-          // Update all OrderId fields recursively with the correct order number for this copy
-          updateAllOrderIds(orderCopy, orderNum);
-          
-          // Verify OrderId updates in OrderLines (explicit check after recursive update)
-          if (orderCopy.OrderLine && Array.isArray(orderCopy.OrderLine)) {
-            orderCopy.OrderLine.forEach((line, lineIndex) => {
-              // Ensure all OrderId fields are updated
-              line.OrderId = orderNum;
-              line.orderId = orderNum;
-              if (line.Order) {
-                line.Order.OrderId = orderNum;
-                line.Order.orderId = orderNum;
-              }
-            });
-          }
-          if (orderCopy.orderLine && Array.isArray(orderCopy.orderLine)) {
-            orderCopy.orderLine.forEach((line, lineIndex) => {
-              // Ensure all OrderId fields are updated
-              line.OrderId = orderNum;
-              line.orderId = orderNum;
-              if (line.Order) {
-                line.Order.OrderId = orderNum;
-                line.Order.orderId = orderNum;
-              }
-            });
-          }
-          
-          // Validate cleaned fields are not present
-          const cleanedFieldsErrors = validateCleanedFields(orderCopy);
-          if (cleanedFieldsErrors.length > 0) {
-            logToConsole(`WARNING: Found cleaned fields in order ${orderNum}:`, 'error');
-            cleanedFieldsErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
-          }
-          
-          logToConsole(`Updated all OrderId fields to: ${orderNum} for order ${index + 1}`, 'info');
-          // Calculate PickupEndDateTime for each order
-          calculatePickupEndDateTime(orderCopy);
+          const orderCopy = JSON.parse(JSON.stringify(orderJson));
+          orderCopy.OrderId = orderNum;
+          orderCopy.orderId = orderNum;
           return orderCopy;
         });
 
-        // Use bulk import API for multiple orders
-        const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order/bulkImport?stopOnFirstError=false`;
+        // Log bulk import API call
+        const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order/bulkImport`;
         logToConsole('=== BULK IMPORT ORDERS API CALL ===', 'info');
         logToConsole(`Method: POST`, 'info');
         logToConsole(`URL: ${apiUrl}`, 'info');
@@ -1503,97 +1187,22 @@
             // Show simple message next to button
             createOrderStatus.textContent = 'Bulk import failed';
             createOrderStatus.className = 'text-danger';
-            createOrderBtn.disabled = false;
             return;
           }
 
-          // Check the actual response data for SuccessCount and TotalCount
-          const responseData = res.response?.data || res.response?.Data || res.data || res.response || {};
-          const successCount = responseData.SuccessCount ?? responseData.successCount ?? responseData.Success ?? 0;
-          const totalCount = responseData.TotalCount ?? responseData.totalCount ?? responseData.Total ?? ordersData.length;
-          const failedCount = responseData.FailedCount ?? responseData.failedCount ?? responseData.Failed ?? 0;
-          
-          logToConsole(`Bulk import results: SuccessCount=${successCount}, TotalCount=${totalCount}, FailedCount=${failedCount}`, 'info');
-          
-          // Determine if import was actually successful based on SuccessCount
-          if (successCount === 0 && totalCount > 0) {
-            // All orders failed
-            createOrderStatus.textContent = `Bulk import failed: 0 of ${totalCount} orders imported`;
-            createOrderStatus.className = 'text-danger';
-            logToConsole(`Bulk import failed: 0 of ${totalCount} orders imported`, 'error');
-          } else if (successCount > 0 && successCount < totalCount) {
-            // Partial success
-            createOrderStatus.textContent = `Partially successful: ${successCount} of ${totalCount} orders imported`;
-            createOrderStatus.className = 'text-warning';
-            logToConsole(`Bulk import partially successful: ${successCount} of ${totalCount} orders imported`, 'warning');
-          } else if (successCount === totalCount && totalCount > 0) {
-            // Complete success
-            createOrderStatus.textContent = `Successfully imported ${successCount} of ${totalCount} orders!`;
-            createOrderStatus.className = 'text-success';
-            logToConsole(`Bulk import successful: ${successCount} of ${totalCount} orders imported`, 'success');
-          } else {
-            // Fallback - use res.success but log warning
-            createOrderStatus.textContent = `Bulk import completed (${successCount}/${totalCount} successful)`;
-            createOrderStatus.className = successCount > 0 ? 'text-success' : 'text-danger';
-            logToConsole(`Bulk import completed: ${successCount} of ${totalCount} orders imported`, successCount > 0 ? 'success' : 'error');
-          }
-          
-          createOrderBtn.disabled = false;
+          // Show success message next to button
+          createOrderStatus.textContent = `Successfully imported ${ordersData.length} orders!`;
+          createOrderStatus.className = 'text-success';
+          logToConsole(`Bulk import successful: ${ordersData.length} orders`, 'success');
         } catch (e) {
           createOrderStatus.textContent = `Error: ${e.message}`;
           createOrderStatus.className = 'text-danger';
           logToConsole(`Exception: ${e.message}`, 'error');
           logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+        } finally {
           createOrderBtn.disabled = false;
         }
       } else {
-        // Single order - clean data, sync fields, update OrderId and PickupEndDateTime
-        // Clean order data (already done above, but ensure it's clean)
-        cleanOrderData(orderJson);
-        syncOrderLineFields(orderJson);
-        
-        if (parsedOrderNumbers.length > 0) {
-          const orderId = parsedOrderNumbers[0];
-          updateAllOrderIds(orderJson, orderId);
-          
-          // Verify OrderId updates in OrderLines (explicit check after recursive update)
-          if (orderJson.OrderLine && Array.isArray(orderJson.OrderLine)) {
-            orderJson.OrderLine.forEach((line) => {
-              // Ensure all OrderId fields are updated
-              line.OrderId = orderId;
-              line.orderId = orderId;
-              if (line.Order) {
-                line.Order.OrderId = orderId;
-                line.Order.orderId = orderId;
-              }
-            });
-          }
-          if (orderJson.orderLine && Array.isArray(orderJson.orderLine)) {
-            orderJson.orderLine.forEach((line) => {
-              // Ensure all OrderId fields are updated
-              line.OrderId = orderId;
-              line.orderId = orderId;
-              if (line.Order) {
-                line.Order.OrderId = orderId;
-                line.Order.orderId = orderId;
-              }
-            });
-          }
-          
-          // Validate cleaned fields are not present
-          const cleanedFieldsErrors = validateCleanedFields(orderJson);
-          if (cleanedFieldsErrors.length > 0) {
-            logToConsole('WARNING: Found cleaned fields in payload:', 'error');
-            cleanedFieldsErrors.forEach(err => logToConsole(`  ${err}`, 'error'));
-          } else {
-            logToConsole('Validation passed: No cleaned fields found in payload', 'success');
-          }
-          
-          logToConsole(`Updated all OrderId fields to: ${orderId}`, 'info');
-        }
-        calculatePickupEndDateTime(orderJson);
-        logToConsole(`Calculated PickupEndDateTime as PickupStartDateTime + 1 day`, 'info');
-        
         // Single order
         const facilityId = `${org.toUpperCase()}-DM1`;
         const apiUrl = `https://salep.sce.manh.com/dcorder/api/dcorder/order`;
@@ -1705,17 +1314,6 @@
         return;
       }
       
-      // Sync DisplayQuantity and OriginalOrderedQuantity to match OrderedQuantity for all lines
-      orderLines.forEach(line => {
-        const orderedQty = line.OrderedQuantity || line.orderedQuantity || line.Quantity || line.quantity || 0;
-        if (orderedQty !== undefined && orderedQty !== null) {
-          line.DisplayQuantity = orderedQty;
-          line.displayQuantity = orderedQty;
-          line.OriginalOrderedQuantity = orderedQty;
-          line.originalOrderedQuantity = orderedQty;
-        }
-      });
-      
       orderLines.forEach((line, index) => {
         const lineId = `line${index}`;
         const itemId = line.ItemId || line.itemId || '';
@@ -1810,17 +1408,11 @@
         if (field === 'ItemId') {
           orderLines[lineIndex].itemId = value;
         } else if (field === 'OrderedQuantity') {
-          const qtyValue = parseFloat(value) || 0;
-          orderLines[lineIndex].OrderedQuantity = qtyValue;
-          orderLines[lineIndex].orderedQuantity = qtyValue;
+          orderLines[lineIndex].OrderedQuantity = parseFloat(value) || 0;
+          orderLines[lineIndex].orderedQuantity = parseFloat(value) || 0;
           // Also update Quantity for backwards compatibility
-          orderLines[lineIndex].Quantity = qtyValue;
-          orderLines[lineIndex].quantity = qtyValue;
-          // Sync DisplayQuantity and OriginalOrderedQuantity to match OrderedQuantity
-          orderLines[lineIndex].DisplayQuantity = qtyValue;
-          orderLines[lineIndex].displayQuantity = qtyValue;
-          orderLines[lineIndex].OriginalOrderedQuantity = qtyValue;
-          orderLines[lineIndex].originalOrderedQuantity = qtyValue;
+          orderLines[lineIndex].Quantity = parseFloat(value) || 0;
+          orderLines[lineIndex].quantity = parseFloat(value) || 0;
         } else if (field === 'QuantityUomId') {
           orderLines[lineIndex].quantityUomId = value;
           orderLines[lineIndex].UOM = value;
@@ -1896,18 +1488,10 @@
     // Helper function to add a new order line
     function addNewOrderLine(afterIndex) {
       const orderLines = currentOrderData.OrderLine || currentOrderData.orderLine || [];
-      const defaultQty = 1;
       const newLine = {
         OrderLineId: (orderLines.length + 1).toString(),
         ItemId: '',
-        OrderedQuantity: defaultQty,
-        orderedQuantity: defaultQty,
-        Quantity: defaultQty,
-        quantity: defaultQty,
-        DisplayQuantity: defaultQty,
-        displayQuantity: defaultQty,
-        OriginalOrderedQuantity: defaultQty,
-        originalOrderedQuantity: defaultQty,
+        OrderedQuantity: 1,
         QuantityUomId: 'units'
       };
       
@@ -1970,44 +1554,35 @@
         // Store parsed order numbers for bulk import
         parsedOrderNumbers = orderNumbers;
         
-        // Update current order data with first order number (for display in JSON editor)
-        // The JSON editor should show the first order in the range with all OrderId fields updated
+        // Update current order data with first order number (for display)
         if (orderNumbers.length > 0) {
-          const firstOrderId = orderNumbers[0];
-          // Update all OrderId fields recursively in the current order data
-          updateAllOrderIds(currentOrderData, firstOrderId);
-          logToConsole(`Updated JSON editor to show first order: ${firstOrderId}`, 'info');
+          currentOrderData.OrderId = orderNumbers[0];
+          currentOrderData.orderId = orderNumbers[0];
         } else {
-          const orderId = orderInput || currentOrderData.OrderId || currentOrderData.orderId;
-          updateAllOrderIds(currentOrderData, orderId);
+          currentOrderData.OrderId = orderInput;
+          currentOrderData.orderId = orderInput;
         }
         
         updateJSONFromCurrentData();
         
-        // Log when multiple orders detected
+        // Log if multiple orders detected
         if (orderNumbers.length > 1) {
-          logToConsole(`Multiple orders detected: ${orderNumbers.length} orders will be created using bulk API. JSON shows first order: ${orderNumbers[0]}`, 'info');
+          logToConsole(`Multiple orders detected: ${orderNumbers.length} orders will be created`, 'info');
         }
       }
     });
     
     summaryOrderType.addEventListener('input', () => {
       if (currentOrderData) {
-        const orderTypeValue = summaryOrderType.value.trim();
         if (!currentOrderData.OrderType) {
-          currentOrderData.OrderType = orderTypeValue || '';
+          currentOrderData.OrderType = {};
         }
         if (typeof currentOrderData.OrderType === 'object') {
-          currentOrderData.OrderType.OrderTypeId = orderTypeValue;
-          currentOrderData.OrderType.orderTypeId = orderTypeValue;
-          // Also set string value for syncing
-          currentOrderData.orderType = orderTypeValue;
+          currentOrderData.OrderType.OrderTypeId = summaryOrderType.value;
+          currentOrderData.OrderType.orderTypeId = summaryOrderType.value;
         } else {
-          currentOrderData.OrderType = orderTypeValue || '';
-          currentOrderData.orderType = orderTypeValue || '';
+          currentOrderData.OrderType = summaryOrderType.value;
         }
-        // Sync OrderType to all order lines
-        syncOrderLineFields(currentOrderData);
         updateJSONFromCurrentData();
       }
     });
@@ -2016,8 +1591,6 @@
       if (currentOrderData) {
         currentOrderData.DestinationFacilityId = summaryDestinationFacility.value;
         currentOrderData.destinationFacilityId = summaryDestinationFacility.value;
-        // Sync DestinationFacilityId to all order lines
-        syncOrderLineFields(currentOrderData);
         updateJSONFromCurrentData();
       }
     });
@@ -2047,114 +1620,6 @@
         jsonEditor.setValue(jsonStr);
       }
     }
-
-    // ===== THEME SYSTEM =====
-    const themeSelectorBtn = document.getElementById('themeSelectorBtn');
-    const themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
-    const themeList = document.getElementById('themeList');
-    const THEME_STORAGE_KEY = 'order_generator_theme';
-    
-    // Theme definitions
-    const themes = {
-      dark: {
-        name: 'Dark',
-        rootClass: ''
-      },
-      manhattan: {
-        name: 'Manhattan',
-        rootClass: 'theme-manhattan'
-      }
-    };
-    
-    // Load saved theme or default to dark
-    function loadTheme() {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-      applyTheme(savedTheme);
-    }
-    
-    // Apply theme
-    function applyTheme(themeName) {
-      const root = document.documentElement;
-      const theme = themes[themeName] || themes.dark;
-      
-      // Remove all theme classes
-      Object.values(themes).forEach(t => {
-        if (t.rootClass) {
-          root.classList.remove(t.rootClass);
-        }
-      });
-      
-      // Apply selected theme
-      if (theme.rootClass) {
-        root.classList.add(theme.rootClass);
-      }
-      
-      // Save to localStorage
-      localStorage.setItem(THEME_STORAGE_KEY, themeName);
-    }
-    
-    // Render theme list in modal
-    function renderThemeList() {
-      themeList.innerHTML = '';
-      const currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-      
-      Object.entries(themes).forEach(([key, theme]) => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = `list-group-item list-group-item-action ${key === currentTheme ? 'active' : ''}`;
-        item.textContent = theme.name;
-        item.onclick = () => {
-          applyTheme(key);
-          themeModal.hide();
-        };
-        themeList.appendChild(item);
-      });
-    }
-    
-    // Theme selector button click handler
-    if (themeSelectorBtn) {
-      themeSelectorBtn.onclick = () => {
-        renderThemeList();
-        themeModal.show();
-      };
-      
-      // Ensure button is always visible after theme changes
-      const observer = new MutationObserver(() => {
-        if (themeSelectorBtn) {
-          themeSelectorBtn.style.display = 'block';
-          themeSelectorBtn.style.visibility = 'visible';
-        }
-      });
-      
-      // Observe theme class changes on root element
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class']
-      });
-    }
-    
-    // Load theme on page load
-    loadTheme();
-    
-    // Ensure gear icon is visible after theme loads
-    if (themeSelectorBtn) {
-      setTimeout(() => {
-        themeSelectorBtn.style.display = 'block';
-        themeSelectorBtn.style.visibility = 'visible';
-      }, 100);
-    }
-  </script>
-  <!-- Vercel Analytics -->
-  <script>
-    (function() {
-      const script = document.createElement('script');
-      script.src = '/_vercel/insights/script.js';
-      script.defer = true;
-      script.onerror = function() {
-        console.warn('Vercel Analytics script failed to load. Make sure Analytics is enabled in Vercel dashboard and the app is redeployed.');
-      };
-      document.head.appendChild(script);
-    })();
   </script>
 </body>
 </html>

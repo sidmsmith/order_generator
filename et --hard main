@@ -1,0 +1,10 @@
+* [33md881deb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m v1.4.6: Revert to v1.2.3 theming code - gear icon always white, Dark/Manhattan themes with Bootstrap list-group modal
+* [33mac782f0[m v1.4.5: Match update_appt theme modal exactly - multiple themes, proper styling, theme switching
+* [33m2c1ccf2[m v1.4.4: Add theme selection modal, use white solid gear icon matching update_appt
+* [33m084fe89[m v1.4.3: Fix gear icon click handler, improve button initialization and styling
+* [33mbe122ae[m Fix gear icon: improve click handler, add hover rotation, ensure Manhattan theme default
+* [33mf003532[m Set Manhattan (dark) theme as default on first load
+* [33mdd7542f[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m v1.4.2: Clean up bulk import logging, remove excessive debugging details - Remove failed records loop logging - Remove extra debugging messages - Keep API response, summary results, and final success/error message
+* [33m2c9a1cb[m v1.4.1: Improve bulk import response handling to check SuccessCount and TotalCount - Parse SuccessCount, TotalCount, FailedCount, and FailedRecords from response - Show error message when SuccessCount is 0 (all orders failed) - Show warning message for partial success (some orders failed) - Only show success message when all orders imported successfully - Log failed records to console for debugging
+* [33mbdd628c[m v1.4.0: Remove Bulk Test button, automatically use Bulk API for multiple orders - Remove Bulk Test button and all related code - Automatically use bulk import API when creating multiple orders - Remove batched parallel execution code (no longer needed) - Bulk API working with no obvious errors - Memorialize that Bulk API is production-ready
+* [33m42fc864[m v1.3.8: Sync DisplayQuantity and OriginalOrderedQuantity with OrderedQuantity - Sync DisplayQuantity and OriginalOrderedQuantity when loading order lines - Sync these fields when creating new order lines - Update these fields when OrderedQuantity is changed in UI - Include sync in syncOrderLineFields function for order creation
