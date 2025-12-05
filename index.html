@@ -647,14 +647,6 @@
       console.log('authenticate() function called');
       logToConsole('=== AUTHENTICATE FUNCTION CALLED ===', 'info');
       
-      // Track auth attempt in Statsig
-      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-        window.StatsigTracking.logEvent('auth_attempt', {
-          org: orgInputElement ? orgInputElement.value.trim() : 'unknown',
-          timestamp: new Date().toISOString()
-        });
-      }
-      
       // Re-query orgInput to ensure it exists
       const orgInputElement = document.getElementById('org') || orgInput;
       if (!orgInputElement) {
@@ -667,6 +659,14 @@
       const org = orgInputElement.value.trim();
       console.log('ORG value:', org);
       logToConsole(`ORG value: ${org}`, 'info');
+      
+      // Track auth attempt in Statsig (after getting org value)
+      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+        window.StatsigTracking.logEvent('auth_attempt', {
+          org: org || 'unknown',
+          timestamp: new Date().toISOString()
+        });
+      }
       
       if (!org) {
         status('ORG required', 'error');
