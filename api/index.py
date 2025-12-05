@@ -483,6 +483,34 @@ def search_uoms():
             "error": f"Error searching UOMs: {str(e)}"
         })
 
+@app.route('/api/statsig-config', methods=['GET'])
+def statsig_config():
+    """Provide Statsig Client SDK Key to client-side code"""
+    client_key = os.getenv('STATSIG_CLIENT_KEY')
+    if client_key:
+        return jsonify({"key": client_key})
+    else:
+        return jsonify({
+            "error": "STATSIG_CLIENT_KEY not configured",
+            "note": "Please set STATSIG_CLIENT_KEY environment variable in Vercel project settings. The key should start with 'client-'"
+        }), 200  # Return 200 so client can handle gracefully
+
+@app.route('/statsig-js-client.min.js', methods=['GET'])
+def serve_statsig_sdk():
+    """Serve Statsig SDK JavaScript file"""
+    sdk_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'statsig-js-client.min.js')
+    if os.path.exists(sdk_path):
+        return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'statsig-js-client.min.js', mimetype='application/javascript')
+    return jsonify({'error': 'SDK file not found'}), 404
+
+@app.route('/statsig.js', methods=['GET'])
+def serve_statsig_js():
+    """Serve Statsig integration JavaScript file"""
+    statsig_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'statsig.js')
+    if os.path.exists(statsig_path):
+        return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'statsig.js', mimetype='application/javascript')
+    return jsonify({'error': 'Statsig script not found'}), 404
+
 # === FALLBACK: Serve index.html for SPA ===
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

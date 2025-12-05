@@ -647,6 +647,14 @@
       console.log('authenticate() function called');
       logToConsole('=== AUTHENTICATE FUNCTION CALLED ===', 'info');
       
+      // Track auth attempt in Statsig
+      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+        window.StatsigTracking.logEvent('auth_attempt', {
+          org: orgInputElement ? orgInputElement.value.trim() : 'unknown',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       // Re-query orgInput to ensure it exists
       const orgInputElement = document.getElementById('org') || orgInput;
       if (!orgInputElement) {
@@ -663,6 +671,15 @@
       if (!org) {
         status('ORG required', 'error');
         if (mainUI) mainUI.style.display = 'none';
+        
+        // Track auth failure in Statsig
+        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+          window.StatsigTracking.logEvent('auth_failed', {
+            error: 'ORG required',
+            timestamp: new Date().toISOString()
+          });
+        }
+        
         throw new Error('ORG required');
       }
       
@@ -685,12 +702,30 @@
         status('Authentication failed', 'error');
         logToConsole('Authentication: Failed', 'error');
         mainUI.style.display = 'none';
+        
+        // Track auth failure in Statsig
+        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+          window.StatsigTracking.logEvent('auth_failed', {
+            org: org,
+            error: res.error || 'Authentication failed',
+            timestamp: new Date().toISOString()
+          });
+        }
+        
         throw new Error(res.error || 'Authentication failed');
       }
       token = res.token;
       status('Authenticated – ready!', 'success');
       logToConsole('Authentication: Succeeded', 'success');
       mainUI.style.display = 'block';
+      
+      // Track auth success in Statsig
+      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+        window.StatsigTracking.logEvent('auth_success', {
+          org: org,
+          timestamp: new Date().toISOString()
+        });
+      }
       
       // Hide ORG section after authentication
       if (orgSection) {
@@ -1145,6 +1180,15 @@
         return;
       }
 
+      // Track find order attempt in Statsig
+      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+        window.StatsigTracking.logEvent('find_order_attempt', {
+          org: org,
+          order_number: orderNumber,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       loadOrderStatus.textContent = 'Loading...';
       loadOrderStatus.className = 'text-info';
       createOrderStatus.textContent = ''; // Clear create order status
@@ -1192,6 +1236,16 @@
             // Log full error details to console
             logToConsole(`Full Error Details:`, 'error');
             logToConsole(res.error, 'error');
+          }
+          
+          // Track find order failure in Statsig
+          if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+            window.StatsigTracking.logEvent('find_order_failed', {
+              org: org,
+              order_number: orderNumber,
+              error: res.error || 'Order not found',
+              timestamp: new Date().toISOString()
+            });
           }
           
           // Show simple message next to button
@@ -1631,6 +1685,15 @@
           }
           
           if (!res.success) {
+            // Track create order failure in Statsig
+            if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+              window.StatsigTracking.logEvent('create_order_failed', {
+                org: org,
+                error: res.error || 'Create failed',
+                timestamp: new Date().toISOString()
+              });
+            }
+            
             // Show simple message next to button
             createOrderStatus.textContent = 'Create failed';
             createOrderStatus.className = 'text-danger';
@@ -1642,6 +1705,15 @@
           createOrderStatus.className = 'text-success';
           if (res.orderId) {
             logToConsole(`New Order ID: ${res.orderId}`, 'success');
+          }
+          
+          // Track create order success in Statsig
+          if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+            window.StatsigTracking.logEvent('create_order_completed', {
+              org: org,
+              order_id: res.orderId || 'unknown',
+              timestamp: new Date().toISOString()
+            });
           }
         } catch (e) {
           createOrderStatus.textContent = `Error: ${e.message}`;
@@ -2156,6 +2228,8 @@
       document.head.appendChild(script);
     })();
   </script>
+  <!-- Statsig Analytics -->
+  <script src="statsig.js"></script>
 </body>
 </html>
 
