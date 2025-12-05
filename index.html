@@ -1304,11 +1304,30 @@
         // Show success message next to button
         loadOrderStatus.textContent = 'Order loaded successfully!';
         loadOrderStatus.className = 'text-success';
+        
+        // Track find order success in Statsig
+        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+          window.StatsigTracking.logEvent('find_order_completed', {
+            org: org,
+            order_number: orderNumber,
+            timestamp: new Date().toISOString()
+          });
+        }
       } catch (e) {
         loadOrderStatus.textContent = `Error: ${e.message}`;
         loadOrderStatus.className = 'text-danger';
         logToConsole(`Exception: ${e.message}`, 'error');
         logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
+        
+        // Track find order failure in Statsig
+        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
+          window.StatsigTracking.logEvent('find_order_failed', {
+            org: org,
+            order_number: orderNumber,
+            error: e.message || 'Exception occurred',
+            timestamp: new Date().toISOString()
+          });
+        }
       } finally {
         loadOrderBtn.disabled = false;
       }
