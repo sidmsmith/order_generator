@@ -592,9 +592,14 @@
     });
     
     // Window load for other initialization (separate from auth handlers)
-    window.addEventListener('load', () => {
-      // Don't log app_opened to console
-      fetch('/api/app_opened', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
+    window.addEventListener('load', async () => {
+      // Track app opened
+      const urlParams = new URLSearchParams(window.location.search);
+      await trackEvent('app_opened', {
+        has_url_params: window.location.search.length > 0,
+        url_org: urlParams.get('Organization') || null,
+        url_order_id: urlParams.get('OrderId') || null
+      });
       
       // Initialize JSON editor (non-blocking - won't break if CodeMirror fails)
       try {
@@ -660,25 +665,28 @@
       console.log('ORG value:', org);
       logToConsole(`ORG value: ${org}`, 'info');
       
-      // Track auth attempt in Statsig (after getting org value)
-      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-        window.StatsigTracking.logEvent('auth_attempt', {
-          org: org || 'unknown',
-          timestamp: new Date().toISOString()
-        });
-      }
+      // Track auth attempt
+      authAttemptCount++;
+      const authStartTime = Date.now();
+      const urlParams = new URLSearchParams(window.location.search);
+      await trackEvent('auth_attempt', {
+        org: org || 'unknown',
+        url_order_id: urlParams.get('OrderId') || null
+      });
       
       if (!org) {
         status('ORG required', 'error');
         if (mainUI) mainUI.style.display = 'none';
         
-        // Track auth failure in Statsig
-        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-          window.StatsigTracking.logEvent('auth_failed', {
-            error: 'ORG required',
-            timestamp: new Date().toISOString()
-          });
-        }
+        // Track auth failure
+        const authDuration = Date.now() - authStartTime;
+        const urlParams = new URLSearchParams(window.location.search);
+        await trackEvent('auth_failed', {
+          error: 'ORG required',
+          auth_duration_ms: authDuration,
+          token_received: false,
+          url_order_id: urlParams.get('OrderId') || null
+        });
         
         throw new Error('ORG required');
       }
@@ -689,6 +697,9 @@
       
       const res = await api('auth', { org }, false);
       console.log('API response:', res);
+      const authDuration = Date.now() - authStartTime;
+      const urlParams = new URLSearchParams(window.location.search);
+      
       if (!res.success) {
         // Log detailed error to console
         logToConsole('=== AUTH API ERROR ===', 'error');
@@ -703,14 +714,14 @@
         logToConsole('Authentication: Failed', 'error');
         mainUI.style.display = 'none';
         
-        // Track auth failure in Statsig
-        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-          window.StatsigTracking.logEvent('auth_failed', {
-            org: org,
-            error: res.error || 'Authentication failed',
-            timestamp: new Date().toISOString()
-          });
-        }
+        // Track auth failure
+        await trackEvent('auth_failed', {
+          org: org,
+          error: res.error || 'Authentication failed',
+          auth_duration_ms: authDuration,
+          token_received: false,
+          url_order_id: urlParams.get('OrderId') || null
+        });
         
         throw new Error(res.error || 'Authentication failed');
       }
@@ -719,12 +730,15 @@
       logToConsole('Authentication: Succeeded', 'success');
       mainUI.style.display = 'block';
       
-      // Track auth success in Statsig
-      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-        window.StatsigTracking.logEvent('auth_success', {
-          org: org,
-          timestamp: new Date().toISOString()
-        });
+      // Track auth success
+      await trackEvent('auth_success', {
+        org: org,
+        auth_duration_ms: authDuration,
+        token_received: !!token,
+        url_order_id: urlParams.get('OrderId') || null
+      });
+      if (firstAuthSuccess) {
+        firstAuthSuccess = false;
       }
       
       // Hide ORG section after authentication
@@ -1180,14 +1194,12 @@
         return;
       }
 
-      // Track find order attempt in Statsig
-      if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-        window.StatsigTracking.logEvent('find_order_attempt', {
-          org: org,
-          order_number: orderNumber,
-          timestamp: new Date().toISOString()
-        });
-      }
+      // Track find order attempt
+      const findStartTime = Date.now();
+      await trackEvent('find_order_attempt', {
+        org: org,
+        order_number: orderNumber
+      });
 
       loadOrderStatus.textContent = 'Loading...';
       loadOrderStatus.className = 'text-info';
@@ -1238,15 +1250,14 @@
             logToConsole(res.error, 'error');
           }
           
-          // Track find order failure in Statsig
-          if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-            window.StatsigTracking.logEvent('find_order_failed', {
-              org: org,
-              order_number: orderNumber,
-              error: res.error || 'Order not found',
-              timestamp: new Date().toISOString()
-            });
-          }
+          // Track find order failure
+          const findDuration = Date.now() - findStartTime;
+          await trackEvent('find_order_failed', {
+            org: org,
+            order_number: orderNumber,
+            error: res.error || 'Order not found',
+            find_duration_ms: findDuration
+          });
           
           // Show simple message next to button
           loadOrderStatus.textContent = 'Invalid Order';
@@ -1305,29 +1316,34 @@
         loadOrderStatus.textContent = 'Order loaded successfully!';
         loadOrderStatus.className = 'text-success';
         
-        // Track find order success in Statsig
-        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-          window.StatsigTracking.logEvent('find_order_completed', {
-            org: org,
-            order_number: orderNumber,
-            timestamp: new Date().toISOString()
-          });
-        }
+        // Track find order success
+        const findDuration = Date.now() - findStartTime;
+        const orderLines = res.orderData?.OrderLine || res.orderData?.orderLine || [];
+        await trackEvent('find_order_completed', {
+          org: org,
+          order_number: orderNumber,
+          order_id: res.orderData?.OrderId || res.orderData?.orderId || orderNumber,
+          order_lines_count: orderLines.length,
+          order_type: res.orderData?.OrderType?.OrderTypeId || res.orderData?.OrderType || res.orderData?.orderType || null,
+          destination_facility: res.orderData?.DestinationFacilityId || res.orderData?.destinationFacilityId || null,
+          pickup_start_datetime: res.orderData?.PickupStartDateTime || res.orderData?.pickupStartDateTime || null,
+          has_order_data: !!res.orderData,
+          find_duration_ms: findDuration
+        });
       } catch (e) {
         loadOrderStatus.textContent = `Error: ${e.message}`;
         loadOrderStatus.className = 'text-danger';
         logToConsole(`Exception: ${e.message}`, 'error');
         logToConsole(`Stack: ${e.stack || 'N/A'}`, 'error');
         
-        // Track find order failure in Statsig
-        if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-          window.StatsigTracking.logEvent('find_order_failed', {
-            org: org,
-            order_number: orderNumber,
-            error: e.message || 'Exception occurred',
-            timestamp: new Date().toISOString()
-          });
-        }
+        // Track find order failure
+        const findDuration = Date.now() - findStartTime;
+        await trackEvent('find_order_failed', {
+          org: org,
+          order_number: orderNumber,
+          error: e.message || 'Exception occurred',
+          find_duration_ms: findDuration
+        });
       } finally {
         loadOrderBtn.disabled = false;
       }
@@ -1420,6 +1436,23 @@
       createOrderStatus.className = 'text-info';
       loadOrderStatus.textContent = ''; // Clear load order status
       createOrderBtn.disabled = true;
+
+      // Track create order attempt
+      const createStartTime = Date.now();
+      const orderLines = orderJson.OrderLine || orderJson.orderLine || [];
+      const itemIds = orderLines.map(line => line.ItemId || line.itemId).filter(id => id && id.trim());
+      const useBulk = parsedOrderNumbers.length > 1;
+      
+      await trackEvent('create_order_attempt', {
+        org: org,
+        order_lines_count: orderLines.length,
+        item_ids_count: itemIds.length,
+        order_type: orderJson.OrderType?.OrderTypeId || orderJson.OrderType || orderJson.orderType || null,
+        destination_facility: orderJson.DestinationFacilityId || orderJson.destinationFacilityId || null,
+        pickup_start_datetime: orderJson.PickupStartDateTime || orderJson.pickupStartDateTime || null,
+        use_bulk: useBulk,
+        orders_count: parsedOrderNumbers.length
+      });
 
       // Parse order numbers from summary field for bulk import
       const orderInput = summaryOrderNumber.value.trim();
@@ -1555,7 +1588,9 @@
         logToConsole(JSON.stringify({ Data: ordersData }, null, 2), 'info');
 
         try {
+          const bulkStartTime = Date.now();
           const res = await api('bulk_import_orders', { org, token, ordersData }, true);
+          const bulkDuration = Date.now() - bulkStartTime;
           
           // Log response details to console
           logToConsole('=== BULK IMPORT ORDERS API RESPONSE ===', 'info');
@@ -1572,14 +1607,6 @@
             }
           }
           
-          if (!res.success) {
-            // Show simple message next to button
-            createOrderStatus.textContent = 'Bulk import failed';
-            createOrderStatus.className = 'text-danger';
-            createOrderBtn.disabled = false;
-            return;
-          }
-
           // Check the actual response data for SuccessCount and TotalCount
           const responseData = res.response?.data || res.response?.Data || res.data || res.response || {};
           const successCount = responseData.SuccessCount ?? responseData.successCount ?? responseData.Success ?? 0;
@@ -1588,13 +1615,35 @@
           
           logToConsole(`Bulk import results: SuccessCount=${successCount}, TotalCount=${totalCount}, FailedCount=${failedCount}`, 'info');
           
+          if (!res.success || (successCount === 0 && totalCount > 0)) {
+            // Track bulk import failure
+            await trackEvent('bulk_import_orders_failed', {
+              org: org,
+              orders_count: ordersData.length,
+              success_count: successCount,
+              failed_count: failedCount,
+              total_count: totalCount,
+              error: res.error || 'Bulk import failed',
+              bulk_import_duration_ms: bulkDuration
+            });
+            
+            // Show simple message next to button
+            if (successCount === 0 && totalCount > 0) {
+              createOrderStatus.textContent = `Bulk import failed: 0 of ${totalCount} orders imported`;
+              createOrderStatus.className = 'text-danger';
+              logToConsole(`Bulk import failed: 0 of ${totalCount} orders imported`, 'error');
+            } else {
+              createOrderStatus.textContent = 'Bulk import failed';
+              createOrderStatus.className = 'text-danger';
+            }
+            createOrderBtn.disabled = false;
+            return;
+          }
+
           // Determine if import was actually successful based on SuccessCount
-          if (successCount === 0 && totalCount > 0) {
-            // All orders failed
-            createOrderStatus.textContent = `Bulk import failed: 0 of ${totalCount} orders imported`;
-            createOrderStatus.className = 'text-danger';
-            logToConsole(`Bulk import failed: 0 of ${totalCount} orders imported`, 'error');
-          } else if (successCount > 0 && successCount < totalCount) {
+          const partialSuccess = successCount > 0 && successCount < totalCount;
+          
+          if (partialSuccess) {
             // Partial success
             createOrderStatus.textContent = `Partially successful: ${successCount} of ${totalCount} orders imported`;
             createOrderStatus.className = 'text-warning';
@@ -1611,8 +1660,27 @@
             logToConsole(`Bulk import completed: ${successCount} of ${totalCount} orders imported`, successCount > 0 ? 'success' : 'error');
           }
           
+          // Track bulk import success
+          await trackEvent('bulk_import_orders_completed', {
+            org: org,
+            orders_count: ordersData.length,
+            success_count: successCount,
+            failed_count: failedCount,
+            total_count: totalCount,
+            partial_success: partialSuccess,
+            bulk_import_duration_ms: bulkDuration
+          });
+          
           createOrderBtn.disabled = false;
         } catch (e) {
+          const bulkDuration = Date.now() - createStartTime;
+          await trackEvent('bulk_import_orders_failed', {
+            org: org,
+            orders_count: ordersData.length,
+            error: e.message || 'Exception occurred',
+            bulk_import_duration_ms: bulkDuration
+          });
+          
           createOrderStatus.textContent = `Error: ${e.message}`;
           createOrderStatus.className = 'text-danger';
           logToConsole(`Exception: ${e.message}`, 'error');
@@ -1704,14 +1772,15 @@
           }
           
           if (!res.success) {
-            // Track create order failure in Statsig
-            if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-              window.StatsigTracking.logEvent('create_order_failed', {
-                org: org,
-                error: res.error || 'Create failed',
-                timestamp: new Date().toISOString()
-              });
-            }
+            // Track create order failure
+            const createDuration = Date.now() - createStartTime;
+            await trackEvent('create_order_failed', {
+              org: org,
+              error: res.error || 'Create failed',
+              create_duration_ms: createDuration,
+              use_bulk: useBulk,
+              orders_count: parsedOrderNumbers.length
+            });
             
             // Show simple message next to button
             createOrderStatus.textContent = 'Create failed';
@@ -1726,14 +1795,21 @@
             logToConsole(`New Order ID: ${res.orderId}`, 'success');
           }
           
-          // Track create order success in Statsig
-          if (window.StatsigTracking && window.StatsigTracking.isInitialized()) {
-            window.StatsigTracking.logEvent('create_order_completed', {
-              org: org,
-              order_id: res.orderId || 'unknown',
-              timestamp: new Date().toISOString()
-            });
-          }
+          // Track create order success
+          const createDuration = Date.now() - createStartTime;
+          await trackEvent('create_order_completed', {
+            org: org,
+            order_id: res.orderId || 'unknown',
+            source_order_id: currentOrderData?.OrderId || currentOrderData?.orderId || null,
+            order_lines_count: orderLines.length,
+            item_ids_count: itemIds.length,
+            order_type: orderJson.OrderType?.OrderTypeId || orderJson.OrderType || orderJson.orderType || null,
+            destination_facility: orderJson.DestinationFacilityId || orderJson.destinationFacilityId || null,
+            pickup_start_datetime: orderJson.PickupStartDateTime || orderJson.pickupStartDateTime || null,
+            use_bulk: useBulk,
+            orders_count: parsedOrderNumbers.length,
+            create_duration_ms: createDuration
+          });
         } catch (e) {
           createOrderStatus.textContent = `Error: ${e.message}`;
           createOrderStatus.className = 'text-danger';
@@ -2139,6 +2215,124 @@
       }
     }
 
+    // ===== GENERIC METADATA COLLECTION =====
+    let sessionId = sessionStorage.getItem('session_id');
+    if (!sessionId) {
+      sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      sessionStorage.setItem('session_id', sessionId);
+    }
+    const pageLoadTime = new Date().toISOString();
+    let authAttemptCount = 0;
+    let firstAuthSuccess = true;
+
+    // Browser detection helpers
+    function getBrowserName() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome';
+      if (ua.includes('Firefox')) return 'Firefox';
+      if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+      if (ua.includes('Edg')) return 'Edge';
+      if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+      return 'Unknown';
+    }
+
+    function getBrowserVersion() {
+      const ua = navigator.userAgent;
+      const match = ua.match(/(Chrome|Firefox|Safari|Edg|Opera|OPR)\/(\d+)/);
+      return match ? match[2] : 'Unknown';
+    }
+
+    function getOSName() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Windows')) return 'Windows';
+      if (ua.includes('Mac')) return 'macOS';
+      if (ua.includes('Linux')) return 'Linux';
+      if (ua.includes('Android')) return 'Android';
+      if (ua.includes('iOS')) return 'iOS';
+      return 'Unknown';
+    }
+
+    function getOSVersion() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Windows NT 10.0')) return '10';
+      if (ua.includes('Windows NT 6.3')) return '8.1';
+      if (ua.includes('Windows NT 6.2')) return '8';
+      if (ua.includes('Windows NT 6.1')) return '7';
+      if (ua.includes('Mac OS X')) {
+        const match = ua.match(/Mac OS X (\d+[._]\d+)/);
+        return match ? match[1].replace('_', '.') : 'Unknown';
+      }
+      return 'Unknown';
+    }
+
+    function getDeviceType() {
+      const ua = navigator.userAgent;
+      if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return 'Tablet';
+      if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return 'Mobile';
+      return 'Desktop';
+    }
+
+    function getCommonMetadata(eventSpecificMetadata = {}) {
+      const appName = document.title.split(' v')[0] || 'Order Generator';
+      const appVersionMatch = document.title.match(/v(\d+\.\d+\.\d+)/i);
+      const appVersion = appVersionMatch ? appVersionMatch[1] : '1.4.7';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlParamsObj = {};
+      for (const [key, value] of urlParams.entries()) {
+        urlParamsObj[key] = value;
+      }
+
+      const currentTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+      const hasSavedPreferences = localStorage.getItem(THEME_STORAGE_KEY) !== null;
+
+      const metadata = {
+        app_name: appName,
+        app_version: appVersion,
+        timestamp: new Date().toISOString(),
+        session_id: sessionId,
+        page_load_time: pageLoadTime,
+        time_on_page_seconds: Math.floor((Date.now() - new Date(pageLoadTime).getTime()) / 1000),
+        user_agent: navigator.userAgent,
+        browser_name: getBrowserName(),
+        browser_version: getBrowserVersion(),
+        device_type: getDeviceType(),
+        os_name: getOSName(),
+        os_version: getOSVersion(),
+        screen_resolution: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+        referrer: document.referrer,
+        url_params: urlParamsObj,
+        auto_authenticated: !!urlParams.get('Organization'),
+        theme: currentTheme,
+        has_saved_preferences: hasSavedPreferences,
+        request_origin: window.location.origin,
+        ...eventSpecificMetadata
+      };
+
+      // Add auth-specific metadata if available
+      if (metadata.event_name && metadata.event_name.startsWith('auth_')) {
+        metadata.auth_method = urlParams.get('Organization') ? 'url_param' : 'manual';
+        metadata.auth_attempt_count = authAttemptCount;
+        metadata.first_auth_success = firstAuthSuccess;
+      }
+
+      return metadata;
+    }
+
+    // Home Assistant tracking helper
+    async function trackEvent(eventName, metadata = {}) {
+      try {
+        await api('ha-track', {
+          event_name: eventName,
+          metadata: getCommonMetadata(metadata)
+        });
+      } catch (error) {
+        console.warn('[HA] Failed to track event:', error);
+      }
+    }
+
     // ===== THEME SYSTEM =====
     const themeSelectorBtn = document.getElementById('themeSelectorBtn');
     const themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
@@ -2247,8 +2441,6 @@
       document.head.appendChild(script);
     })();
   </script>
-  <!-- Statsig Analytics -->
-  <script src="statsig.js"></script>
 </body>
 </html>
 

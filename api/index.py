@@ -5,6 +5,7 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 import urllib3
+from datetime import datetime
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -18,11 +19,31 @@ PASSWORD = os.getenv("MANHATTAN_PASSWORD")
 CLIENT_ID = "omnicomponent.1.0.0"
 CLIENT_SECRET = os.getenv("MANHATTAN_SECRET")
 
+# === Home Assistant Webhook Configuration ===
+HA_WEBHOOK_URL = os.getenv("HA_WEBHOOK_URL", "http://sidmsmith.zapto.org:8123/api/webhook/manhattan_app_usage")
+HA_HEADERS = {"Content-Type": "application/json"}
+APP_NAME = "order-generator-app"
+APP_VERSION = "1.4.7"  # Hardcoded for now, could be dynamic
+
 # Critical: Fail fast if secrets missing
 if not PASSWORD or not CLIENT_SECRET:
     raise Exception("Missing MANHATTAN_PASSWORD or MANHATTAN_SECRET environment variables")
 
 # === HELPERS ===
+def send_ha_message(event_name, metadata={}):
+    """Send event to Home Assistant webhook"""
+    payload = {
+        "event_name": event_name,
+        "app_name": APP_NAME,
+        "app_version": APP_VERSION,
+        "timestamp": datetime.utcnow().isoformat(),
+        **metadata
+    }
+    try:
+        requests.post(HA_WEBHOOK_URL, json=payload, headers=HA_HEADERS, timeout=5)
+    except Exception as e:
+        print(f"[HA] Failed to send webhook for event {event_name}: {e}")
+
 def get_manhattan_token(org):
     url = f"https://{AUTH_HOST}/oauth/token"
     username = f"{USERNAME_BASE}{org.lower()}"
@@ -483,33 +504,14 @@ def search_uoms():
             "error": f"Error searching UOMs: {str(e)}"
         })
 
-@app.route('/api/statsig-config', methods=['GET'])
-def statsig_config():
-    """Provide Statsig Client SDK Key to client-side code"""
-    client_key = os.getenv('STATSIG_CLIENT_KEY')
-    if client_key:
-        return jsonify({"key": client_key})
-    else:
-        return jsonify({
-            "error": "STATSIG_CLIENT_KEY not configured",
-            "note": "Please set STATSIG_CLIENT_KEY environment variable in Vercel project settings. The key should start with 'client-'"
-        }), 200  # Return 200 so client can handle gracefully
-
-@app.route('/statsig-js-client.min.js', methods=['GET'])
-def serve_statsig_sdk():
-    """Serve Statsig SDK JavaScript file"""
-    sdk_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'statsig-js-client.min.js')
-    if os.path.exists(sdk_path):
-        return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'statsig-js-client.min.js', mimetype='application/javascript')
-    return jsonify({'error': 'SDK file not found'}), 404
-
-@app.route('/statsig.js', methods=['GET'])
-def serve_statsig_js():
-    """Serve Statsig integration JavaScript file"""
-    statsig_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'statsig.js')
-    if os.path.exists(statsig_path):
-        return send_from_directory(os.path.dirname(os.path.dirname(__file__)), 'statsig.js', mimetype='application/javascript')
-    return jsonify({'error': 'Statsig script not found'}), 404
+@app.route('/api/ha-track', methods=['POST'])
+def ha_track():
+    """Receive events from frontend and forward to HA webhook"""
+    data = request.json
+    event_name = data.get('event_name')
+    metadata = data.get('metadata', {})
+    send_ha_message(event_name, metadata)
+    return jsonify({"success": True})
 
 # === FALLBACK: Serve index.html for SPA ===
 @app.route('/', defaults={'path': ''})
