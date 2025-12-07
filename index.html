@@ -617,7 +617,6 @@
       }
       
       // Check for URL parameters for auto-authentication and order loading
-      const urlParams = new URLSearchParams(window.location.search);
       const urlOrg = urlParams.get('Organization');
       const urlOrderId = urlParams.get('OrderId');
       
@@ -680,7 +679,6 @@
         
         // Track auth failure
         const authDuration = Date.now() - authStartTime;
-        const urlParams = new URLSearchParams(window.location.search);
         await trackEvent('auth_failed', {
           error: 'ORG required',
           auth_duration_ms: authDuration,
@@ -698,7 +696,6 @@
       const res = await api('auth', { org }, false);
       console.log('API response:', res);
       const authDuration = Date.now() - authStartTime;
-      const urlParams = new URLSearchParams(window.location.search);
       
       if (!res.success) {
         // Log detailed error to console
@@ -1439,8 +1436,6 @@
 
       // Track create order attempt
       const createStartTime = Date.now();
-      const orderLines = orderJson.OrderLine || orderJson.orderLine || [];
-      const itemIds = orderLines.map(line => line.ItemId || line.itemId).filter(id => id && id.trim());
       const useBulk = parsedOrderNumbers.length > 1;
       
       await trackEvent('create_order_attempt', {
@@ -1520,8 +1515,6 @@
       logToConsole(`All orders validated - none exist in system`, 'success');
       
       // Use bulk import API if multiple orders, otherwise single order API
-      const useBulk = parsedOrderNumbers.length > 1;
-      
       if (useBulk) {
         // Generate multiple orders from template (use original, not updated orderJson)
         const ordersData = parsedOrderNumbers.map((orderNum, index) => {
