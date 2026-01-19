@@ -1041,6 +1041,83 @@
       }
     }
     
+    // Calculate DeliveryStartDateTime and DeliveryEndDateTime based on Pickup dates
+    // Only updates if current delivery dates are not greater than pickup dates
+    function calculateDeliveryDates(orderData) {
+      const pickupStart = orderData.PickupStartDateTime || orderData.pickupStartDateTime;
+      const pickupEnd = orderData.PickupEndDateTime || orderData.pickupEndDateTime;
+      
+      if (!pickupStart) return;
+      
+      try {
+        const pickupStartDate = new Date(pickupStart);
+        if (isNaN(pickupStartDate.getTime())) return;
+        
+        // Check if DeliveryStartDateTime is valid (greater than PickupStartDateTime)
+        const currentDeliveryStart = orderData.DeliveryStartDateTime || orderData.deliveryStartDateTime;
+        let shouldUpdateDeliveryStart = true;
+        
+        if (currentDeliveryStart) {
+          const deliveryStartDate = new Date(currentDeliveryStart);
+          if (!isNaN(deliveryStartDate.getTime()) && deliveryStartDate > pickupStartDate) {
+            shouldUpdateDeliveryStart = false;
+          }
+        }
+        
+        // Update DeliveryStartDateTime if needed (PickupStartDateTime + 3 days)
+        if (shouldUpdateDeliveryStart) {
+          const deliveryStartDate = new Date(pickupStartDate);
+          deliveryStartDate.setDate(deliveryStartDate.getDate() + 3);
+          
+          const year = deliveryStartDate.getFullYear();
+          const month = String(deliveryStartDate.getMonth() + 1).padStart(2, '0');
+          const day = String(deliveryStartDate.getDate()).padStart(2, '0');
+          const hours = String(deliveryStartDate.getHours()).padStart(2, '0');
+          const minutes = String(deliveryStartDate.getMinutes()).padStart(2, '0');
+          const seconds = String(deliveryStartDate.getSeconds()).padStart(2, '0');
+          const isoValue = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+          
+          orderData.DeliveryStartDateTime = isoValue;
+          orderData.deliveryStartDateTime = isoValue;
+        }
+        
+        // Check if DeliveryEndDateTime is valid (greater than PickupEndDateTime)
+        if (pickupEnd) {
+          const pickupEndDate = new Date(pickupEnd);
+          if (!isNaN(pickupEndDate.getTime())) {
+            const currentDeliveryEnd = orderData.DeliveryEndDateTime || orderData.deliveryEndDateTime;
+            let shouldUpdateDeliveryEnd = true;
+            
+            if (currentDeliveryEnd) {
+              const deliveryEndDate = new Date(currentDeliveryEnd);
+              if (!isNaN(deliveryEndDate.getTime()) && deliveryEndDate > pickupEndDate) {
+                shouldUpdateDeliveryEnd = false;
+              }
+            }
+            
+            // Update DeliveryEndDateTime if needed (PickupEndDateTime + 3 days)
+            if (shouldUpdateDeliveryEnd) {
+              const deliveryEndDate = new Date(pickupEndDate);
+              deliveryEndDate.setDate(deliveryEndDate.getDate() + 3);
+              
+              const year = deliveryEndDate.getFullYear();
+              const month = String(deliveryEndDate.getMonth() + 1).padStart(2, '0');
+              const day = String(deliveryEndDate.getDate()).padStart(2, '0');
+              const hours = String(deliveryEndDate.getHours()).padStart(2, '0');
+              const minutes = String(deliveryEndDate.getMinutes()).padStart(2, '0');
+              const seconds = String(deliveryEndDate.getSeconds()).padStart(2, '0');
+              const isoValue = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+              
+              orderData.DeliveryEndDateTime = isoValue;
+              orderData.deliveryEndDateTime = isoValue;
+            }
+          }
+        }
+      } catch (e) {
+        logToConsole(`Error calculating Delivery dates: ${e.message}`, 'error');
+      }
+    }
+    
     // ===== VALIDATION FUNCTIONS =====
     
     // Validate order data before sending
@@ -1563,6 +1640,8 @@
           logToConsole(`Updated all OrderId fields to: ${orderNum} for order ${index + 1}`, 'info');
           // Calculate PickupEndDateTime for each order
           calculatePickupEndDateTime(orderCopy);
+          // Calculate Delivery dates based on Pickup dates
+          calculateDeliveryDates(orderCopy);
           return orderCopy;
         });
 
@@ -1727,6 +1806,8 @@
         }
         calculatePickupEndDateTime(orderJson);
         logToConsole(`Calculated PickupEndDateTime as PickupStartDateTime + 1 day`, 'info');
+        calculateDeliveryDates(orderJson);
+        logToConsole(`Calculated Delivery dates based on Pickup dates`, 'info');
         
         // Single order
         const facilityId = `${org.toUpperCase()}-DM1`;
@@ -2192,6 +2273,10 @@
           const isoValue = dateValue + ':00';
           currentOrderData.PickupStartDateTime = isoValue;
           currentOrderData.pickupStartDateTime = isoValue;
+          
+          // Calculate PickupEndDateTime and Delivery dates when PickupStartDateTime changes
+          calculatePickupEndDateTime(currentOrderData);
+          calculateDeliveryDates(currentOrderData);
         } else {
           currentOrderData.PickupStartDateTime = '';
           currentOrderData.pickupStartDateTime = '';
