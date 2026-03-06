@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.4.7 - Added Vercel Analytics -->
-  <title>Order Generator v1.4.7</title>
+  <!-- Version: v1.4.8 - Console URL param, removed version from heading -->
+  <title>Order Generator v1.4.8</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -242,7 +242,7 @@
     <button class="theme-selector-btn" id="themeSelectorBtn" title="Select Theme">
       <i class="fas fa-cog"></i>
     </button>
-    <h2 class="text-center mb-4">Order Generator v1.4.7</h2>
+    <h2 class="text-center mb-4">Order Generator</h2>
 
     <!-- ORG -->
     <div id="orgSection" class="mb-3">
@@ -330,8 +330,8 @@
       </div>
 
 
-      <!-- CONSOLE OUTPUT -->
-      <div class="mt-4">
+      <!-- CONSOLE OUTPUT (shown only when ?Console=Y) -->
+      <div class="mt-4" id="consoleSection" style="display: none;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <label class="form-label mb-0">API Console (Testing):</label>
           <button type="button" id="clearConsoleBtn" class="btn btn-sm btn-secondary">Clear</button>
@@ -616,6 +616,13 @@
         });
       }
       
+      // Show API Console only when ?Console=Y
+      const consoleParam = urlParams.get('Console');
+      const consoleSection = document.getElementById('consoleSection');
+      if (consoleParam && consoleParam.toUpperCase() === 'Y') {
+        consoleSection.style.display = 'block';
+      }
+
       // Check for URL parameters for auto-authentication and order loading
       const urlOrg = urlParams.get('Organization');
       const urlOrderId = urlParams.get('OrderId');
@@ -2353,7 +2360,7 @@
     function getCommonMetadata(eventSpecificMetadata = {}) {
       const appName = document.title.split(' v')[0] || 'Order Generator';
       const appVersionMatch = document.title.match(/v(\d+\.\d+\.\d+)/i);
-      const appVersion = appVersionMatch ? appVersionMatch[1] : '1.4.7';
+      const appVersion = appVersionMatch ? appVersionMatch[1] : '1.4.8';
 
       const urlParams = new URLSearchParams(window.location.search);
       const urlParamsObj = {};
