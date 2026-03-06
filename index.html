@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Version: v1.5.6 - Order JSON pill toggle button with ORDERJSON URL param -->
-  <title>Order Generator v1.5.6</title>
+  <!-- Version: v1.5.7 - Move Order JSON toggle to Create Order button row -->
+  <title>Order Generator v1.5.7</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -290,16 +290,9 @@
       </div>
 
       <!-- LOAD ORDER BUTTON -->
-      <div class="mb-3 d-flex align-items-center" style="position: relative; min-height: 38px;">
-        <div class="d-flex align-items-center gap-3">
-          <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Order</button>
-          <span id="loadOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
-        </div>
-        <div style="position: absolute; left: 50%; transform: translateX(-50%);">
-          <button id="jsonToggleBtn" class="json-toggle-btn" style="display: none;" title="Toggle Order JSON">
-            <i class="fas fa-code" style="font-size: 0.75rem;"></i> Order JSON
-          </button>
-        </div>
+      <div class="mb-3 d-flex align-items-center gap-3">
+        <button id="loadOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Load Order</button>
+        <span id="loadOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
       </div>
 
       <!-- SUMMARY FIELDS (Hidden until order loaded) -->
@@ -343,10 +336,15 @@
       </div>
 
       <!-- CREATE ORDER BUTTON -->
-      <div id="createOrderButtonSection" class="mb-3" style="display: none;">
+      <div id="createOrderButtonSection" class="mb-3" style="display: none; position: relative; min-height: 38px;">
         <div class="d-flex align-items-center gap-3">
           <button id="createOrderBtn" class="btn btn-success px-4" style="min-width: 200px;">Create Order(s)</button>
           <span id="createOrderStatus" class="text-muted" style="font-size: 0.9em;"></span>
+        </div>
+        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 50%; margin-top: -14px;">
+          <button id="jsonToggleBtn" class="json-toggle-btn" style="display: none;" title="Toggle Order JSON">
+            <i class="fas fa-code" style="font-size: 0.75rem;"></i> Order JSON
+          </button>
         </div>
       </div>
 
@@ -2497,7 +2495,7 @@
     function getCommonMetadata(eventSpecificMetadata = {}) {
       const appName = document.title.split(' v')[0] || 'Order Generator';
       const appVersionMatch = document.title.match(/v(\d+\.\d+\.\d+)/i);
-      const appVersion = appVersionMatch ? appVersionMatch[1] : '1.5.6';
+      const appVersion = appVersionMatch ? appVersionMatch[1] : '1.5.7';
 
       const urlParams = new URLSearchParams(window.location.search);
       const urlParamsObj = {};
