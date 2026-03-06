@@ -217,7 +217,13 @@ def validate_items():
     url = f"https://{API_HOST}/item-master/api/item-master/item/search"
     
     # Try POST with JSON body first (as user mentioned it works in Postman)
-    payload = {"Query": query}
+    payload = {
+        "Query": query,
+        "Template": {
+            "ItemId": None,
+            "Description": None
+        }
+    }
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
