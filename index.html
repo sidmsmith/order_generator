@@ -585,9 +585,9 @@
         logToConsole('ERROR: authBtn element not found! Check HTML for id="authBtn"', 'error');
       }
       
-      // Allow Enter key to trigger authentication
+      // Allow Enter key to trigger authentication (property assignment replaces prior handler)
       if (orgInputField) {
-        orgInputField.addEventListener('keypress', function(e) {
+        orgInputField.onkeypress = function(e) {
           if (e.key === 'Enter') {
             console.log('Enter key pressed in org input');
             authenticate().catch(err => {
@@ -595,7 +595,7 @@
               logToConsole(`Authentication error: ${err.message}`, 'error');
             });
           }
-        });
+        };
         console.log('Enter key handler attached to org input');
         logToConsole('Enter key handler attached to org input', 'info');
       } else {
@@ -611,14 +611,7 @@
       // DOM is already ready
       attachAuthHandlers();
     }
-    
-    // Also try on window load as backup
-    window.addEventListener('load', () => {
-      console.log('Window load event fired');
-      // Re-attach handlers as backup
-      attachAuthHandlers();
-    });
-    
+
     // Window load for other initialization (separate from auth handlers)
     window.addEventListener('load', async () => {
       // Track app opened
