@@ -23,6 +23,8 @@ Add the following environment variables in your Vercel project settings:
 #### Required:
 - `MANHATTAN_PASSWORD` - Manhattan API password
 - `MANHATTAN_SECRET` - Manhattan API client secret
+- `MANHATTAN_USAGE_INGEST_URL` - Dashboard usage-ingest URL (Neon)
+- `MANHATTAN_USAGE_INGEST_SECRET` - Optional; must match dashboard if configured
 
 ### 2. Local Development
 

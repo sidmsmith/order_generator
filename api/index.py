@@ -5,7 +5,7 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 import urllib3
-from datetime import datetime
+from datetime import datetime, timezone
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -19,30 +19,29 @@ PASSWORD = os.getenv("MANHATTAN_PASSWORD")
 CLIENT_ID = "omnicomponent.1.0.0"
 CLIENT_SECRET = os.getenv("MANHATTAN_SECRET")
 
-# === Home Assistant Webhook Configuration ===
-HA_WEBHOOK_URL = os.getenv("HA_WEBHOOK_URL", "http://sidmsmith.zapto.org:8123/api/webhook/manhattan_app_usage")
-HA_HEADERS = {"Content-Type": "application/json"}
+# === Usage ingest (dashboard → Neon) ===
+USAGE_INGEST_URL = os.getenv("MANHATTAN_USAGE_INGEST_URL", "").strip()
+USAGE_INGEST_SECRET = os.getenv("MANHATTAN_USAGE_INGEST_SECRET", "").strip()
 APP_NAME = "order-generator-app"
-APP_VERSION = "1.4.7"  # Hardcoded for now, could be dynamic
+APP_VERSION = "1.5.7"
 
 # Critical: Fail fast if secrets missing
 if not PASSWORD or not CLIENT_SECRET:
     raise Exception("Missing MANHATTAN_PASSWORD or MANHATTAN_SECRET environment variables")
 
 # === HELPERS ===
-def send_ha_message(event_name, metadata={}):
-    """Send event to Home Assistant webhook"""
-    payload = {
-        "event_name": event_name,
-        "app_name": APP_NAME,
-        "app_version": APP_VERSION,
-        "timestamp": datetime.utcnow().isoformat(),
-        **metadata
-    }
+def forward_usage_event(payload):
+    """POST usage JSON to Manhattan app usage dashboard ingest (Neon)."""
+    if not USAGE_INGEST_URL:
+        print("[usage] MANHATTAN_USAGE_INGEST_URL not set; event not recorded")
+        return
+    headers = {"Content-Type": "application/json"}
+    if USAGE_INGEST_SECRET:
+        headers["Authorization"] = f"Bearer {USAGE_INGEST_SECRET}"
     try:
-        requests.post(HA_WEBHOOK_URL, json=payload, headers=HA_HEADERS, timeout=5)
+        requests.post(USAGE_INGEST_URL, json=payload, headers=headers, timeout=8)
     except Exception as e:
-        print(f"[HA] Failed to send webhook for event {event_name}: {e}")
+        print(f"[usage] Forward failed: {e}")
 
 def get_manhattan_token(org):
     url = f"https://{AUTH_HOST}/oauth/token"
@@ -510,13 +509,20 @@ def search_uoms():
             "error": f"Error searching UOMs: {str(e)}"
         })
 
-@app.route('/api/ha-track', methods=['POST'])
-def ha_track():
-    """Receive events from frontend and forward to HA webhook"""
-    data = request.json
+@app.route('/api/usage-track', methods=['POST'])
+def usage_track():
+    """Receive events from frontend and forward to usage ingest (Neon)."""
+    data = request.json or {}
     event_name = data.get('event_name')
     metadata = data.get('metadata', {})
-    send_ha_message(event_name, metadata)
+    payload = {
+        **metadata,
+        "event_name": event_name,
+        "app_name": APP_NAME,
+        "app_version": APP_VERSION,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    forward_usage_event(payload)
     return jsonify({"success": True})
 
 # === FALLBACK: Serve index.html for SPA ===

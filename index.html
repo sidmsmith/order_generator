@@ -2507,8 +2507,8 @@
       const hasSavedPreferences = localStorage.getItem(THEME_STORAGE_KEY) !== null;
 
       const metadata = {
-        app_name: appName,
-        app_version: appVersion,
+        page_title: appName,
+        ui_version: appVersion,
         timestamp: new Date().toISOString(),
         session_id: sessionId,
         page_load_time: pageLoadTime,
@@ -2528,28 +2528,24 @@
         theme: currentTheme,
         has_saved_preferences: hasSavedPreferences,
         request_origin: window.location.origin,
+        auth_method: urlParams.get('Organization') ? 'url_param' : 'manual',
+        auth_attempt_count: authAttemptCount,
+        first_auth_success: firstAuthSuccess,
         ...eventSpecificMetadata
       };
-
-      // Add auth-specific metadata if available
-      if (metadata.event_name && metadata.event_name.startsWith('auth_')) {
-        metadata.auth_method = urlParams.get('Organization') ? 'url_param' : 'manual';
-        metadata.auth_attempt_count = authAttemptCount;
-        metadata.first_auth_success = firstAuthSuccess;
-      }
 
       return metadata;
     }
 
-    // Home Assistant tracking helper
+    // Usage tracking (dashboard ingest → Neon)
     async function trackEvent(eventName, metadata = {}) {
       try {
-        await api('ha-track', {
+        await api('usage-track', {
           event_name: eventName,
           metadata: getCommonMetadata(metadata)
         });
       } catch (error) {
-        console.warn('[HA] Failed to track event:', error);
+        console.warn('[usage] Failed to track event:', error);
       }
     }
 
