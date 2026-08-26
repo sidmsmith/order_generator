@@ -23,7 +23,7 @@ CLIENT_SECRET = os.getenv("MANHATTAN_SECRET")
 USAGE_INGEST_URL = os.getenv("MANHATTAN_USAGE_INGEST_URL", "").strip()
 USAGE_INGEST_SECRET = os.getenv("MANHATTAN_USAGE_INGEST_SECRET", "").strip()
 APP_NAME = "order-generator-app"
-APP_VERSION = "1.5.7"
+APP_VERSION = "1.5.8"
 
 # Critical: Fail fast if secrets missing
 if not PASSWORD or not CLIENT_SECRET:

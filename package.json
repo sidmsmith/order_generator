@@ -1,6 +1,6 @@
 {
   "name": "order_generator",
-  "version": "1.4.7",
+  "version": "1.5.8",
   "private": true,
   "scripts": {
     "dev": "vercel dev",
